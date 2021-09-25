@@ -15,7 +15,12 @@ static Node *new_node_num(int val) {
   return node;
 }
 
-Node *expr();
+Node *code[100];
+
+void program();
+static Node *stmt();
+static Node *expr();
+static Node *assign();
 static Node *equality();
 static Node *relational();
 static Node *add();
@@ -23,9 +28,32 @@ static Node *mul();
 static Node *unary();
 static Node *primary();
 
-// expr = equality
-Node *expr() {
-  return equality();
+// program = stmt*
+void program() {
+  int i = 0;
+  while (!at_eof())
+    code[i++] = stmt();
+  code[i] = NULL;
+}
+
+// stmt = expr ";"
+static Node *stmt() {
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
+// expr = assign
+static Node *expr() {
+  return assign();
+}
+
+// assign = equality ("=" assign)?
+static Node *assign() {
+  Node *node = equality();
+  if (consume("="))
+    node = new_node(ND_ASSIGN, node, assign());
+  return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -97,12 +125,20 @@ static Node *unary() {
   return primary();
 }
 
-// primary = num | "(" expr ")"
+// primary = num | ident | "(" expr ")"
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
     Node *node = expr();
     expect(")");
+    return node;
+  }
+
+  Token *tok = consume_ident();
+  if (tok) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = (tok->str[0] - 'a' + 1) * 8;
     return node;
   }
 

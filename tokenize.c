@@ -47,7 +47,7 @@ void expect(char *op) {
   if (token->kind != TK_RESERVED ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
-    error_at(token->str, "'%c'ではありません", op);
+    error_at(token->str, "\"%s\"ではありません", op);
   token = token->next;
 }
 
@@ -61,8 +61,16 @@ int expect_number() {
   return val;
 }
 
-static bool at_eof() {
+bool at_eof() {
   return token->kind == TK_EOF;
+}
+
+Token *consume_ident() {
+  if (token->kind != TK_IDENT)
+      return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -80,7 +88,7 @@ static bool startswith(char *p, char *q) {
 }
 
 // 入力文字列user_inputをトークナイズしてそれを返す
-Token *tokenize() {
+void tokenize() {
   char *p = user_input;
   Token head;
   head.next = NULL;
@@ -102,7 +110,7 @@ Token *tokenize() {
     }
 
     // 1文字演算子
-    if (strchr("+-*/()<>", *p)) {
+    if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -116,9 +124,16 @@ Token *tokenize() {
       continue;
     }
 
+    // 1文字ローカル変数識別子
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_IDENT, cur, p++, 1);
+      continue;
+    }
+
     error_at(p, "トークナイズできません");
   }
 
   new_token(TK_EOF, cur, p, 0);
-  return head.next;
+  token = head.next;
+  return;
 }
