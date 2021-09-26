@@ -34,8 +34,8 @@ int main(int argc, char **argv) {
 
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値になる
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+  //printf("  mov rsp, rbp\n");
+  //printf("  pop rbp\n");
+  //printf("  ret\n");
   return 0;
 }
