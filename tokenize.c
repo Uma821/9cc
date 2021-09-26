@@ -87,6 +87,24 @@ static bool startswith(char *p, char *q) {
   return memcmp(p, q, strlen(q)) == 0;
 }
 
+// cが識別子の最初の文字として有効な場合、trueを返す
+static bool is_ident1(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+// cが識別子の2番目以降の文字として有効な場合、trueを返す
+static bool is_ident2(char c) {
+  return is_ident1(c) || ('0' <= c && c <= '9');
+}
+
+// pから区切子を読み取り、その長さを返す
+static int read_punct(char *p) {
+  if (startswith(p, "==") || startswith(p, "!=") ||
+      startswith(p, "<=") || startswith(p, ">="))
+    return 2;
+  return ispunct(*p) ? 1 : 0;
+}
+
 // 入力文字列user_inputをトークナイズしてそれを返す
 void tokenize() {
   char *p = user_input;
@@ -101,20 +119,6 @@ void tokenize() {
       continue;
     }
 
-    // 2文字演算子
-    if (startswith(p, "==") || startswith(p, "!=") ||
-        startswith(p, "<=") || startswith(p, ">=")) {
-      cur = new_token(TK_RESERVED, cur, p, 2);
-      p += 2;
-      continue;
-    }
-
-    // 1文字演算子
-    if (strchr("+-*/()<>=;", *p)) {
-      cur = new_token(TK_RESERVED, cur, p++, 1);
-      continue;
-    }
-
     // 整数リテラル
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p, 0);
@@ -124,9 +128,21 @@ void tokenize() {
       continue;
     }
 
-    // 1文字ローカル変数識別子
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 1);
+    // 識別子
+    if (is_ident1(*p)) {
+      char *start = p;
+      do {
+        p++;
+      } while (is_ident2(*p));
+      cur = new_token(TK_IDENT, cur, start, p-start);
+      continue;
+    }
+
+    // 区切子
+    int punct_len = read_punct(p);
+    if (punct_len) {
+      cur = new_token(TK_RESERVED, cur, p, punct_len);
+      p += cur->len;
       continue;
     }
 
