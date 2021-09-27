@@ -41,20 +41,39 @@ static Node *primary();
 // program = stmt*
 void program() {
   int i = 0;
-  while (!at_eof())
-    code[i++] = stmt();
+  while (!at_eof()) {
+    code[i] = stmt();
+    if (!code[i++])
+      i--;
+  }
   code[i] = NULL;
 }
 
-// stmt = expr ";" | "return" expr ";"
+// stmt = expr? ";"
+//      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "while" "(" expr ")" stmt
+//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "return" expr ";"
 static Node *stmt() {
   Node *node;
 
-  if (token->kind == TK_RETURN) {
-    token = token->next;
+  if (consume_keyword("if")) {
     node = calloc(1, sizeof(Node));
-    node->kind = ND_RETURN;
-    node->lhs = expr();
+    node->kind = ND_IF;
+    expect("(");
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
+    if (consume_keyword("else"))
+      node->els = stmt();
+    return node;
+  } else if (consume_keyword("return")) {
+    node = new_node(ND_RETURN, expr(), NULL);
+    //node = calloc(1, sizeof(Node));
+    //node->kind = ND_RETURN;
+    //node->lhs = expr();
+  } else if (consume(";")) { // ";"だけの文
+    return NULL;
   } else {
     node = expr();
   }
