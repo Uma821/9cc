@@ -51,15 +51,14 @@ void program() {
 
 // stmt = expr? ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
-//      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
 static Node *stmt() {
   Node *node;
 
   if (consume_keyword("if")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_IF;
+    node = new_node(ND_IF, NULL, NULL);
     expect("(");
     node->cond = expr();
     expect(")");
@@ -67,11 +66,26 @@ static Node *stmt() {
     if (consume_keyword("else"))
       node->els = stmt();
     return node;
+  } else if (consume_keyword("for")) {
+    node = new_node(ND_LOOP, NULL, NULL);
+    expect("(");
+    node->init = stmt(); // ";"の部分も含めてstmt
+    node->cond = stmt();
+    if (!consume(")")) {
+      node->inc = expr();
+      expect(")");
+    }
+    node->then = stmt();
+    return node;
+  } else if (consume_keyword("while")) {
+    node = new_node(ND_LOOP, NULL, NULL);
+    expect("(");
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
+    return node;
   } else if (consume_keyword("return")) {
     node = new_node(ND_RETURN, expr(), NULL);
-    //node = calloc(1, sizeof(Node));
-    //node->kind = ND_RETURN;
-    //node->lhs = expr();
   } else if (consume(";")) { // ";"だけの文
     return NULL;
   } else {

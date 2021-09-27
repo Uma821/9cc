@@ -58,6 +58,23 @@ void gen(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
+  case ND_LOOP: {
+    int c = count();
+    if (node->init)
+      gen(node->init);
+    printf(".L.begin.%d:\n", c);
+    if (node->cond) {
+      gen(node->cond);
+      printf("  cmp rax, 0\n");
+      printf("  je  .L.end.%d\n", c);
+    }
+    gen(node->then);
+    if (node->inc)
+      gen(node->inc);
+    printf("  jmp .L.begin.%d\n", c);
+    printf(".L.end.%d:\n", c);
+    return;
+  }
     
   default:
     break;
