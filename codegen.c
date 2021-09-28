@@ -5,16 +5,22 @@ static int count(void) {
   return i++;
 }
 
-void gen_lval(Node *node) {
+// 'n'を'align'の最も近い倍数に切り上げる。
+// align_to(5, 8) == 8, align_to(11, 8) == 16.
+static int align_to(int n, int align) {
+  return (n + align - 1) / align * align;
+}
+
+static void gen_lval(Node *node) {
   if (node->kind != ND_LVAR)
     error("代入の左辺値が変数ではありません");
 
   printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
+  printf("  sub rax, %d\n", node->lvar->offset);
   printf("  push rax\n");
 }
 
-void gen(Node *node) {
+static void gen(Node *node) {
   switch (node->kind) {
   case ND_NUM:
     printf("  push %d\n", node->val);
@@ -35,15 +41,15 @@ void gen(Node *node) {
     printf("  push rdi\n");
     return;
   case ND_BLOCK:
-    for (Node *n = node->body; n; n = n->next)
+    for (Node *n = node->body; n; n = n->next) {
       gen(n);
+      printf("  pop rax\n");
+    }
     return;
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
+    printf("  jmp .L.return\n");
     return;
   case ND_IF: {
     int c = count();
@@ -79,7 +85,11 @@ void gen(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
-    
+  case ND_FUNCALL: 
+    printf("  mov rax, 0\n");
+    printf("  call %s\n", node->funcname);
+    printf("  push rax\n");
+    return;
   default:
     break;
   }
@@ -129,4 +139,45 @@ void gen(Node *node) {
   }
 
   printf("  push rax\n");
+}
+
+// ローカル変数にオフセット割り当て
+static void assign_lvar_offsets(Function *prog) {
+  int offset = 0;
+  for (LVar *var = prog->locals; var; var = var->next) {
+    offset += 8;
+    var->offset = offset;
+  }
+  prog->stack_size = align_to(offset, 16); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)
+}
+
+void codegen(Function *prog) {
+  assign_lvar_offsets(prog);
+
+  // アセンブリの前半部分を出力
+  printf(".intel_syntax noprefix\n");
+  printf(".globl main\n");
+  printf("main:\n");
+
+  // プロローグ
+  // 使用した変数分の領域を確保する
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, %d\n", prog->stack_size);
+
+  // 先頭の式から順にコード生成
+  //for (int i = 0; code[i]; i++) {
+    gen(prog->body);
+
+    // 式の評価結果としてスタックに一つの値が残っている
+    // はずなので、スタックが溢れないようにポップしておく
+    //printf("  pop rax\n");
+  //}
+
+
+  printf(".L.return:\n");
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
+  printf("  ret\n");
+  
 }

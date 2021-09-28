@@ -25,11 +25,10 @@ static Node *new_node_num(int val) {
   return node;
 }
 
-Node *code[100];
+//Node *code[100];
 
-void program();
+Function *parse();
 static Node *stmt();
-//static Node *compound_stmt();
 static Node *expr();
 static Node *assign();
 static Node *equality();
@@ -40,37 +39,26 @@ static Node *unary();
 static Node *primary();
 
 // program = stmt*
-void program() {
-  int i = 0;
-  while (!at_eof()) {
-    code[i] = stmt();
-    if (!code[i++])
-      i--;
-  }
-  code[i] = NULL;
+Function *parse() {
+  Function *prog = calloc(1, sizeof(Function));
+  if (!at_block())
+    error("中括弧で覆われていません。");
+  prog->body = stmt();
+  if (!at_eof())
+    error("正しくパースできませんでした。");
+  prog->locals = locals;
+  return prog;
 }
 
-// compound-stmt = stmt* "}"
-//static Node *compound_stmt(Token **rest, Token *tok) {
-//  Node head = {};
-//  Node *cur = &head;
-//  while (!equal(tok, "}"))
-//    cur = cur->next = stmt(&tok, tok);
-//
-//  Node *node = new_node(ND_BLOCK);
-//  node->body = head.next;
-//  *rest = tok->next;
-//  return node;
-//}
-
 // stmt = expr? ";"
-//      | "{" compound-stmt
+//      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
 static Node *stmt() {
   Node *node;
+
   if (consume("{")) {
     Node head;
     head.next = NULL;
@@ -110,7 +98,7 @@ static Node *stmt() {
   } else if (consume_keyword("return")) {
     node = new_node(ND_RETURN, expr(), NULL);
   } else if (consume(";")) { // ";"だけの文
-    return NULL;
+    return new_node(ND_BLOCK, NULL, NULL); // 空のブロック
   } else {
     node = expr();
   }
@@ -118,7 +106,6 @@ static Node *stmt() {
   expect(";");
   return node;
 }
-
 
 // expr = assign
 static Node *expr() {
@@ -202,7 +189,7 @@ static Node *unary() {
   return primary();
 }
 
-// primary = num | ident | "(" expr ")"
+// primary = num | ident ("(" ")")? | "(" expr ")"
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -213,19 +200,27 @@ static Node *primary() {
 
   Token *tok = consume_ident();
   if (tok) {
+    // Function call
+    if (consume("(")) {
+      Node *node = new_node(ND_FUNCALL, NULL, NULL);
+      node->funcname = strndup(tok->str, tok->len);
+      expect(")");
+      return node;
+    }
+
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_LVAR;
 
     LVar *lvar = find_lvar(tok);
     if (lvar) {
-      node->offset = lvar->offset;
+      node->lvar = lvar;
     } else {
       lvar = calloc(1, sizeof(LVar));
       lvar->next = locals;
       lvar->name = tok->str;
       lvar->len = tok->len;
-      lvar->offset = locals?locals->offset + 8:8;
-      node->offset = lvar->offset;
+      //lvar->offset = locals?locals->offset + 8:8;
+      node->lvar = lvar;
       locals = lvar;
     }
     return node;

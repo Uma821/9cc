@@ -70,6 +70,14 @@ int expect_number() {
   return val;
 }
 
+bool at_block() {
+  if (token->kind != TK_RESERVED ||
+      token->len != 1 ||
+      token->str[0] != '{')
+    return false;
+  return true;
+}
+
 bool at_eof() {
   return token->kind == TK_EOF;
 }
