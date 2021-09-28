@@ -29,6 +29,7 @@ Node *code[100];
 
 void program();
 static Node *stmt();
+//static Node *compound_stmt();
 static Node *expr();
 static Node *assign();
 static Node *equality();
@@ -49,15 +50,37 @@ void program() {
   code[i] = NULL;
 }
 
+// compound-stmt = stmt* "}"
+//static Node *compound_stmt(Token **rest, Token *tok) {
+//  Node head = {};
+//  Node *cur = &head;
+//  while (!equal(tok, "}"))
+//    cur = cur->next = stmt(&tok, tok);
+//
+//  Node *node = new_node(ND_BLOCK);
+//  node->body = head.next;
+//  *rest = tok->next;
+//  return node;
+//}
+
 // stmt = expr? ";"
+//      | "{" compound-stmt
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
 static Node *stmt() {
   Node *node;
-
-  if (consume_keyword("if")) {
+  if (consume("{")) {
+    Node head;
+    head.next = NULL;
+    Node *cur = &head;
+    while (!consume("}"))
+      cur = cur->next = stmt();
+    node = new_node(ND_BLOCK, NULL, NULL);
+    node->body = head.next;
+    return node;
+  } else if (consume_keyword("if")) {
     node = new_node(ND_IF, NULL, NULL);
     expect("(");
     node->cond = expr();
@@ -95,6 +118,7 @@ static Node *stmt() {
   expect(";");
   return node;
 }
+
 
 // expr = assign
 static Node *expr() {
