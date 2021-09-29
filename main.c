@@ -13,7 +13,5 @@ int main(int argc, char **argv) {
   Function *prog = parse();
 
   codegen(prog);
-  // エピローグ
-  // 最後の式の結果がRAXに残っているのでそれが返り値になる
   return 0;
 }

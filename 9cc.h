@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct Type Type;
+typedef struct Node Node;
+
 //
 // tokenize.c
 //
@@ -56,6 +59,7 @@ typedef struct LVar LVar;
 struct LVar {
   LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
+  Type *ty;   // Type
   int len;    // 名前の長さ
   int offset; // RBPからのオフセット
 };
@@ -100,19 +104,49 @@ struct Node {
   Node *inc;      // kindがND_LOOPの場合のみ使う
   Node *body;     // kindがND_BLOCK(複文)の場合のみ使う
   char *funcname; // kindがND_FUNCALLの場合のみ使う
+  Node *args;     // kindがND_FUNCALLの場合のみ使う
 };
 
 // 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
 typedef struct Function Function;
 struct Function {
+  Function *next;
+  char *name;
+  LVar *params;
+
   Node *body;
   LVar *locals;
   int stack_size;
 };
 
-//extern Node *code[100];
-
 Function *parse();
+
+//
+// type.c
+//
+
+typedef enum {
+  TY_INT,
+  TY_FUNC,
+} TypeKind;
+
+struct Type {
+  TypeKind kind;
+
+  // Declaration
+  char *name;
+
+  // Function type
+  Type *return_ty;
+  Type *params;
+  Type *next;
+};
+
+extern Type *ty_int;
+
+Type *new_type(TypeKind kind);
+Type *func_type(Type *return_ty);
+Type *copy_type(Type *ty);
 
 //
 // codegen.c

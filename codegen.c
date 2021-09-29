@@ -1,5 +1,8 @@
 #include "9cc.h"
 
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static Function *current_fn;
+
 static int count(void) {
   static int i = 1;
   return i++;
@@ -45,11 +48,12 @@ static void gen(Node *node) {
       gen(n);
       printf("  pop rax\n");
     }
+    printf("  push rax\n");
     return;
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  jmp .L.return\n");
+    printf("  jmp .L.return.%s\n", current_fn->name);
     return;
   case ND_IF: {
     int c = count();
@@ -66,30 +70,47 @@ static void gen(Node *node) {
       printf("  pop rax\n");
     }
     printf(".L.end.%d:\n", c);
+    printf("  push rax\n");
     return;
   }
   case ND_LOOP: {
     int c = count();
-    if (node->init)
+    if (node->init) {
       gen(node->init);
+      printf("  pop rax\n");
+    }
     printf(".L.begin.%d:\n", c);
     if (node->cond) {
       gen(node->cond);
+      printf("  pop rax\n");
       printf("  cmp rax, 0\n");
       printf("  je  .L.end.%d\n", c);
     }
     gen(node->then);
-    if (node->inc)
+    printf("  pop rax\n");
+    if (node->inc){
       gen(node->inc);
+      printf("  pop rax\n");
+    }
     printf("  jmp .L.begin.%d\n", c);
     printf(".L.end.%d:\n", c);
+    printf("  push rax\n");
     return;
   }
-  case ND_FUNCALL: 
+  case ND_FUNCALL: {
+    int nargs = 0;
+    for (Node *arg = node->args; arg; arg = arg->next) {
+      gen(arg);
+      nargs++;
+    }
+
+    for (int i = nargs - 1; i >= 0; i--)
+      printf("  pop %s\n", argreg[i]);
     printf("  mov rax, 0\n");
     printf("  call %s\n", node->funcname);
     printf("  push rax\n");
     return;
+  }
   default:
     break;
   }
@@ -143,41 +164,48 @@ static void gen(Node *node) {
 
 // ローカル変数にオフセット割り当て
 static void assign_lvar_offsets(Function *prog) {
-  int offset = 0;
-  for (LVar *var = prog->locals; var; var = var->next) {
-    offset += 8;
-    var->offset = offset;
+  for (Function *fn = prog; fn; fn = fn->next) {
+    int offset = 0;
+    for (LVar *lvar = fn->locals; lvar; lvar = lvar->next) {
+      offset += 8;
+      lvar->offset = offset;
+    }
+    fn->stack_size = align_to(offset, 16); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)
   }
-  prog->stack_size = align_to(offset, 16); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)
 }
 
 void codegen(Function *prog) {
   assign_lvar_offsets(prog);
-
-  // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
-  printf("main:\n");
 
-  // プロローグ
-  // 使用した変数分の領域を確保する
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %d\n", prog->stack_size);
-
-  // 先頭の式から順にコード生成
-  //for (int i = 0; code[i]; i++) {
-    gen(prog->body);
-
-    // 式の評価結果としてスタックに一つの値が残っている
-    // はずなので、スタックが溢れないようにポップしておく
-    //printf("  pop rax\n");
-  //}
-
-
-  printf(".L.return:\n");
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+  for (Function *fn = prog; fn; fn = fn->next) {
+    // アセンブリの前半部分を出力
+    printf(".globl %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    current_fn = fn;
   
+    // プロローグ
+    // 使用した変数分の領域を確保する
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", fn->stack_size);
+
+    // レジスタによって渡された引数をスタックに保存する
+    int i = 0;
+    for (LVar *lvar = fn->params; lvar; lvar = lvar->next) {
+      printf("  mov rax, rbp\n");
+      printf("  sub rax, %d\n", lvar->offset);
+      printf("  mov [rax], %s\n", argreg[i++]);
+    }
+
+    gen(fn->body);
+    printf("  pop rax\n");
+  
+    // エピローグ
+    // 最後の式の結果がRAXに残っているのでそれが返り値になる
+    printf(".L.return.%s:\n", fn->name);
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+  }
 }

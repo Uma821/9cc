@@ -84,7 +84,7 @@ bool at_eof() {
 
 Token *consume_ident() {
   if (token->kind != TK_IDENT)
-      return NULL;
+    return NULL;
   Token *tok = token;
   token = token->next;
   return tok;

@@ -25,8 +25,25 @@ static Node *new_node_num(int val) {
   return node;
 }
 
-//Node *code[100];
+static LVar *new_lvar(char *name, Type *ty) {
+  LVar *lvar = calloc(1, sizeof(LVar));
+  lvar->name = name;
+  lvar->ty = ty;
+  lvar->len = strlen(name);
+  lvar->next = locals;
+  locals = lvar;
+  return lvar;
+}
 
+static char *get_ident() {
+  if (token->kind != TK_IDENT)
+    error_at(token->str, "関数名が必要");
+  Token *tok = token;
+  token = token->next;
+  return strndup(tok->str, tok->len);
+}
+
+static Type *declarator(Type *ty);
 Function *parse();
 static Node *stmt();
 static Node *expr();
@@ -38,16 +55,70 @@ static Node *mul();
 static Node *unary();
 static Node *primary();
 
-// program = stmt*
-Function *parse() {
-  Function *prog = calloc(1, sizeof(Function));
+// type-suffix = ("(" func-params? ")")?
+// func-params = param ("," param)*
+// param       = declarator
+static Type *type_suffix(Type *ty) {
+  if (consume("(")) {
+    Type head = {};
+    Type *cur = &head;
+
+    while (!consume(")")) {
+      Type *basety = new_type(TY_INT); // 引数は暗黙のint
+      Type *ty = declarator(basety);
+      cur = cur->next = copy_type(ty);
+      consume(",");
+    }
+
+    ty = func_type(ty);
+    ty->params = head.next;
+  }
+  return ty;
+}
+
+// declarator = ident type-suffix
+static Type *declarator(Type *ty) { // 宣言
+  char* name = get_ident();
+  
+  ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
+  ty->name = name;
+  return ty;
+}
+
+static void create_param_lvars(Type *param) {
+  if (param) {
+    create_param_lvars(param->next);
+    new_lvar(param->name, param);
+  }
+}
+
+static Function *function() {
+  Type *ty = new_type(TY_INT); // 戻り値は暗黙のint
+  ty = declarator(ty);
+
+  locals = NULL; // NULLのときが終端とするため
+
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = ty->name;
+  create_param_lvars(ty->params);
+  fn->params = locals;
+
   if (!at_block())
     error("中括弧で覆われていません。");
-  prog->body = stmt();
-  if (!at_eof())
-    error("正しくパースできませんでした。");
-  prog->locals = locals;
-  return prog;
+  fn->body = stmt();
+  fn->locals = locals;
+  return fn;
+}
+
+// program = stmt*
+Function *parse() {
+  Function head = {};
+  Function *cur = &head;
+
+  while (!at_eof())
+    cur = cur->next = function();
+    //error("正しくパースできませんでした。");
+  return head.next;
 }
 
 // stmt = expr? ";"
@@ -189,7 +260,23 @@ static Node *unary() {
   return primary();
 }
 
-// primary = num | ident ("(" ")")? | "(" expr ")"
+// funcall = "(" (assign ("," assign)*)? ")"
+static Node *funcall(Token *tok) {
+  Node head = {};
+  Node *cur = &head;
+
+  while (!consume(")")) {
+    cur = cur->next = assign();
+    consume(",");
+  }
+
+  Node *node = new_node(ND_FUNCALL, NULL, NULL);
+  node->funcname = strndup(tok->str, tok->len);
+  node->args = head.next;
+  return node;  
+}
+
+// primary = num | ident funcall? | "(" expr ")"
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -200,12 +287,9 @@ static Node *primary() {
 
   Token *tok = consume_ident();
   if (tok) {
-    // Function call
+    // 関数呼び出し
     if (consume("(")) {
-      Node *node = new_node(ND_FUNCALL, NULL, NULL);
-      node->funcname = strndup(tok->str, tok->len);
-      expect(")");
-      return node;
+      return funcall(tok);
     }
 
     Node *node = calloc(1, sizeof(Node));
@@ -219,7 +303,6 @@ static Node *primary() {
       lvar->next = locals;
       lvar->name = tok->str;
       lvar->len = tok->len;
-      //lvar->offset = locals?locals->offset + 8:8;
       node->lvar = lvar;
       locals = lvar;
     }
