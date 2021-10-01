@@ -83,6 +83,8 @@ typedef enum {
   ND_RETURN,  // return
   ND_BLOCK,   // { ... }
   ND_FUNCALL, // 関数呼び出し
+  ND_ADDR,    // * unary
+  ND_DEREF,   // & unary
   ND_LVAR,    // ローカル変数
   ND_NUM,     // 整数
 } NodeKind;

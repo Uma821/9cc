@@ -152,7 +152,10 @@ static Node *stmt() {
     node = new_node(ND_LOOP, NULL, NULL);
     expect("(");
     node->init = stmt(); // ";"の部分も含めてstmt
-    node->cond = stmt();
+    if (!consume(";")) {
+      node->cond = expr();
+      expect(";");
+    }
     if (!consume(")")) {
       node->inc = expr();
       expect(")");
@@ -252,11 +255,17 @@ static Node *mul() {
 }
 
 // unary = ("+" | "-")? primary
+//       | "*" unary
+//       | "&" unary 
 static Node *unary() {
   if (consume("+"))
     return primary();
   if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), primary());
+  if (consume("*"))
+    return new_node(ND_DEREF,unary(), NULL);
+  if (consume("&"))
+    return new_node(ND_ADDR, unary(), NULL);
   return primary();
 }
 
