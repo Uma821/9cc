@@ -37,13 +37,13 @@ static LVar *new_lvar(char *name, Type *ty) {
 
 static char *get_ident() {
   if (token->kind != TK_IDENT)
-    error_at(token->str, "関数名が必要");
+    error_at(token->str, "識別子が必要");
   Token *tok = token;
   token = token->next;
   return strndup(tok->str, tok->len);
 }
 
-static Type *declarator(Type *ty);
+static Type *declarator();
 Function *parse();
 static Node *stmt();
 static Node *expr();
@@ -66,7 +66,7 @@ static Type *type_suffix(Type *ty) {
     while (!consume(")")) {
       Type *basety = new_type(TY_INT); // 引数は暗黙のint
       Type *ty = declarator(basety);
-      cur = cur->next = copy_type(ty);
+      cur = cur->next = ty;
       consume(",");
     }
 
@@ -77,7 +77,11 @@ static Type *type_suffix(Type *ty) {
 }
 
 // declarator = ident type-suffix
-static Type *declarator(Type *ty) { // 宣言
+static Type *declarator() { // 宣言
+  //if (!consume_keyword("int"))
+  //  error_at(token->str, "型名が必要");
+
+  Type *ty = new_type(TY_INT);
   char* name = get_ident();
   
   ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
@@ -93,8 +97,7 @@ static void create_param_lvars(Type *param) {
 }
 
 static Function *function() {
-  Type *ty = new_type(TY_INT); // 戻り値は暗黙のint
-  ty = declarator(ty);
+  Type *ty = declarator();
 
   locals = NULL; // NULLのときが終端とするため
 
@@ -134,8 +137,11 @@ static Node *stmt() {
     Node head;
     head.next = NULL;
     Node *cur = &head;
-    while (!consume("}"))
+    while (!consume("}")) {
       cur = cur->next = stmt();
+      add_type(cur);
+    }
+    
     node = new_node(ND_BLOCK, NULL, NULL);
     node->body = head.next;
     return node;
@@ -226,15 +232,74 @@ static Node *relational() {
   }
 }
 
+// ポインタ演算の場合、pをポインタ、nを整数とすると
+// p + nはpにnをそのまま加算するのではなく、
+// sizeof(*p)*nをpの値に加算する。
+static Node *new_add(Node *lhs, Node *rhs) {
+  add_type(lhs);
+  add_type(rhs);
+
+  // num + num
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_node(ND_ADD, lhs, rhs);
+
+  // ptr + ptr は計算できない
+  if (lhs->ty->base && rhs->ty->base)
+    error_at(token->str, "無効な演算");
+
+  // num + ptr を ptr + num にひっくり返す.
+  if (!lhs->ty->base && rhs->ty->base) {
+    Node *tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+  }
+
+  // ptr + num
+  rhs = new_node(ND_MUL, rhs, new_node_num(8)); // シフト演算子を定義したら変更する
+  return new_node(ND_ADD, lhs, rhs);
+}
+
+// -演算子にもポインタと整数に対しての演算がある
+static Node *new_sub(Node *lhs, Node *rhs) {
+  add_type(lhs);
+  add_type(rhs);
+
+  // num - num
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_node(ND_SUB, lhs, rhs);
+
+  // ptr - num
+  if (lhs->ty->base && is_integer(rhs->ty)) {
+    rhs = new_node(ND_MUL, rhs, new_node_num(8)); // シフト演算子を定義したら変更する
+    add_type(rhs);
+    Node *node = new_node(ND_SUB, lhs, rhs);
+    node->ty = lhs->ty;
+    return node;
+  }
+
+  // ptr - ptr
+  // 2つのポインタ間の要素数を返す
+  if (lhs->ty->base && rhs->ty->base) {
+    Node *node = new_node(ND_SUB, lhs, rhs);
+    node->ty = new_type(TY_INT);
+    return new_node(ND_DIV, node, new_node_num(8)); // シフト演算子を定義したら変更する
+  }
+
+  error_at(token->str, "無効な演算");
+  return NULL;
+}
+
 // add = mul ("+" mul | "-" mul)*
 static Node *add() {
   Node *node = mul();
 
   for (;;) {
     if (consume("+"))
-      node = new_node(ND_ADD, node, mul());
+      node = new_add(node, mul());
+      // ポインタ演算との場合分けなどの関数
     else if (consume("-"))
-      node = new_node(ND_SUB, node, mul());
+      node = new_sub(node, mul());
+      // ポインタ演算との場合分けなどの関数
     else
       return node;
   }

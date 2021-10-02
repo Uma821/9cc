@@ -95,6 +95,7 @@ typedef struct Node Node;
 struct Node {
   NodeKind kind;  // ノードの型
   Node *next;     // 次のノード
+  Type *ty;       // そのノードのタイプ,intやintへのポインタなど
   Node *lhs;      // 左辺
   Node *rhs;      // 右辺
   int val;        // kindがND_NUMの場合のみ使う
@@ -129,26 +130,26 @@ Function *parse();
 
 typedef enum {
   TY_INT,
+  TY_PTR,
   TY_FUNC,
 } TypeKind;
 
 struct Type {
   TypeKind kind;
-
-  // Declaration
+  // 〇へのポインタ
+  Type *base;
+  // 定義
   char *name;
-
-  // Function type
+  // 関数
   Type *return_ty;
   Type *params;
   Type *next;
 };
 
-extern Type *ty_int;
-
 Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
-Type *copy_type(Type *ty);
+bool is_integer(Type *ty);
+void add_type(Node *node);
 
 //
 // codegen.c
