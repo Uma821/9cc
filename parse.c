@@ -15,6 +15,7 @@ static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   node->kind = kind;
   node->lhs = lhs;
   node->rhs = rhs;
+  node->tok = token;
   return node;
 }
 
@@ -22,6 +23,15 @@ static Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->val = val;
+  node->tok = token;
+  return node;
+}
+
+static Node *new_node_lvar(LVar *lvar, Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_LVAR;
+  node->lvar = lvar;
+  node->tok = tok;
   return node;
 }
 
@@ -43,7 +53,15 @@ static char *get_ident() {
   return strndup(tok->str, tok->len);
 }
 
-static Type *declarator();
+// decl_basictype = "int"
+// 変数宣言のことも考慮して別の関数に振り分けた
+static Type *decl_basictype() {
+  if (!consume_keyword("int"))
+    error_at(token->str, "型名が必要");
+  return new_type(TY_INT);
+}
+
+static Type *declarator(Type *ty);
 Function *parse();
 static Node *stmt();
 static Node *expr();
@@ -64,7 +82,7 @@ static Type *type_suffix(Type *ty) {
     Type *cur = &head;
 
     while (!consume(")")) {
-      Type *basety = new_type(TY_INT); // 引数は暗黙のint
+      Type *basety = decl_basictype();
       Type *ty = declarator(basety);
       cur = cur->next = ty;
       consume(",");
@@ -76,17 +94,42 @@ static Type *type_suffix(Type *ty) {
   return ty;
 }
 
-// declarator = ident type-suffix
-static Type *declarator() { // 宣言
-  //if (!consume_keyword("int"))
-  //  error_at(token->str, "型名が必要");
+// declarator = decl_basictype "*" * ident type-suffix
+static Type *declarator(Type *ty) { // 宣言
+  while (consume("*"))
+    ty = pointer_to(ty);
 
-  Type *ty = new_type(TY_INT);
+  Token *tok_lval = token;
   char* name = get_ident();
   
   ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
   ty->name = name;
+  ty->tok = tok_lval;
   return ty;
+}
+
+// declaration = decl_basictype (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+static Node *declaration() {
+  Type *basety = decl_basictype();
+
+  Node head = {};
+  Node *cur = &head;
+
+  while (!consume(";")) {
+    Type *ty = declarator(basety);
+    LVar *lvar = new_lvar(ty->name, ty);
+
+    if (consume("=")) {
+      Node *lhs = new_node_lvar(lvar, ty->tok);
+      cur = cur->next = new_node(ND_ASSIGN, lhs, assign());
+    }
+
+    consume(",");
+  }
+
+  Node *node = new_node(ND_BLOCK, NULL, NULL);
+  node->body = head.next;
+  return node;
 }
 
 static void create_param_lvars(Type *param) {
@@ -97,7 +140,8 @@ static void create_param_lvars(Type *param) {
 }
 
 static Function *function() {
-  Type *ty = declarator();
+  Type *ty = decl_basictype();
+  ty = declarator(ty);
 
   locals = NULL; // NULLのときが終端とするため
 
@@ -138,7 +182,10 @@ static Node *stmt() {
     head.next = NULL;
     Node *cur = &head;
     while (!consume("}")) {
-      cur = cur->next = stmt();
+      if (equal_keyword("int"))
+        cur = cur->next = declaration();
+      else
+        cur = cur->next = stmt();
       add_type(cur);
     }
     
@@ -366,21 +413,11 @@ static Node *primary() {
       return funcall(tok);
     }
 
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-
     LVar *lvar = find_lvar(tok);
-    if (lvar) {
-      node->lvar = lvar;
-    } else {
-      lvar = calloc(1, sizeof(LVar));
-      lvar->next = locals;
-      lvar->name = tok->str;
-      lvar->len = tok->len;
-      node->lvar = lvar;
-      locals = lvar;
-    }
-    return node;
+    if (!lvar) 
+      error_at(token->str, "未定義の変数");
+
+    return new_node_lvar(lvar, tok);
   }
 
   // そうでなければ数値のはず

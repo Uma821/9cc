@@ -45,26 +45,30 @@ void add_type(Node *node) {
   case ND_SUB:
   case ND_MUL:
   case ND_DIV:
-  case ND_ASSIGN:
     node->ty = node->lhs->ty;
     return;
+  case ND_ASSIGN:
+    if (node->lhs->ty->kind != node->rhs->ty->kind)
+      error_at(node->lhs->tok->str, "代入不可");
+    node->ty = node->lhs->ty;
   case ND_EQ:
   case ND_NE:
   case ND_LT:
   case ND_LE:
   case ND_NUM:
-  case ND_LVAR:
   case ND_FUNCALL:
     node->ty = new_type(TY_INT);
+    return;
+  case ND_LVAR:
+    node->ty = node->lvar->ty;
     return;
   case ND_ADDR:
     node->ty = pointer_to(node->lhs->ty);
     return;
   case ND_DEREF:
-    if (node->lhs->ty->kind == TY_PTR)
-      node->ty = node->lhs->ty->base;
-    else
-      node->ty = new_type(TY_INT);
+    if (node->lhs->ty->kind != TY_PTR)
+      error_at(node->lhs->tok->str, "間接演算子の型として無効");
+    node->ty = node->lhs->ty->base;
     return;
   default:
     return;

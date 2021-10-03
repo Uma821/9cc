@@ -50,6 +50,14 @@ bool consume_keyword(char *op) {
   return true;
 }
 
+bool equal_keyword(char *op) {
+  if (token->kind != TK_KEYWORD ||
+      strlen(op) != token->len ||
+      memcmp(token->str, op, token->len))
+    return false;
+  return true;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -131,7 +139,7 @@ static int is_alnum(char c) {
 
 // キーワードかどうかを調べる。
 static int is_keyword(const char * const p) {
-  static char const * const kws[] = {"if", "else", "for", "while", "return"};
+  static char const * const kws[] = {"if", "else", "for", "while", "return", "int"};
   for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
     if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
       return strlen(kws[i]);
