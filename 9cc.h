@@ -138,6 +138,8 @@ typedef enum {
 
 struct Type {
   TypeKind kind;
+  int size;    // sizeof
+ 
   Type *base;  // 〇へのポインタ
   char *name;  // 定義
   Token *tok;  // 変数の位置情報など
@@ -145,8 +147,6 @@ struct Type {
   Type *return_ty;
   Type *params;
   Type *next;
-   
-
 };
 
 Type *new_type(TypeKind kind);

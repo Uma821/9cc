@@ -397,13 +397,19 @@ static Node *funcall(Token *tok) {
   return node;  
 }
 
-// primary = num | ident funcall? | "(" expr ")"
+// primary = num | ident funcall? | "(" expr ")" | "sizeof" unary
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
     Node *node = expr();
     expect(")");
     return node;
+  }
+
+  if (consume_keyword("sizeof")) {
+    Node *node = unary();
+    add_type(node);
+    return new_node_num(node->ty->size);
   }
 
   Token *tok = consume_ident();

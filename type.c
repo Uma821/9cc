@@ -1,9 +1,10 @@
 #include "9cc.h"
 
 Type *new_type(TypeKind kind) {
-  Type *type = calloc(1, sizeof(Type));
-  type->kind = kind;
-  return type;
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = kind;
+  ty->size = 8;
+  return ty;
 }
 
 Type *func_type(Type *return_ty) {
@@ -20,6 +21,7 @@ bool is_integer(Type *ty) {
 Type *pointer_to(Type *base) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TY_PTR;
+  ty->size = 8;
   ty->base = base;
   return ty;
 }

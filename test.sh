@@ -26,6 +26,12 @@ assert() {
   fi
 }
 
+#assert 1 'int main(){ int q = 4294967295,p=4294967295,o=2147483648*2;return add(p,q)+o==q+p;}'
+#assert 1 'int main(){ int q = 4294967295,p=4294967295,o=2147483648*2;return add(p,q)+o==q+p;}'
+#assert 1 'int main(){ int q = 2147483647,p=2147483647, v= add(p,q);return v == p+q;}'
+#assert 1 'int main(){ int q = 2147483648,p=2147483648, v= add(p,q);v=v/2;q=q/2;return v==q;return v == p+q;}'
+
+
 assert 0 'int main() { return 0; }'
 assert 42 'int main() { return 42; }'
 assert 21 'int main() { return 5+20-4; }'
@@ -108,6 +114,11 @@ assert 32 'int main() { return ret32(); } int ret32() { return 32; }'
 assert 7 'int main() { return add2(3,4); } int add2(int x, int y) { return x+y; }'
 assert 1 'int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; }'
 assert 55 'int main() { return fib(9); } int fib(int x) { if (x<=1) return 1; return fib(x-1) + fib(x-2); }'
-#assert 55 'int main() { int yyyyy = 3; return fib(&yyyyy); } int func(int x) { return *x; }'
+
+assert 8 'int main() { int x; return sizeof(x); }'
+assert 8 'int main() { int x; return sizeof x; }'
+assert 8 'int main() { int *x; return sizeof(x); }'
+assert 8 'int main() { int x=1; return sizeof(x=2); }'
+assert 1 'int main() { int x=1; sizeof(x=2); return x; }'
 
 echo OK
