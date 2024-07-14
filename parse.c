@@ -342,6 +342,12 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
     return new_node(ND_SUB, lhs, rhs);
 
+  // 配列に対するaddは先頭要素のアドレスに降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY)
+    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
+  if (rhs->ty->kind == TY_ARRAY && rhs->lvar->ty->kind == TY_ARRAY)
+    rhs->ty = arr_to_ptr(rhs->lvar->ty);
+
   // ptr - num
   if (lhs->ty->base && is_integer(rhs->ty)) {
     rhs = new_node(ND_MUL, rhs, new_node_num(8)); // シフト演算子を定義したら変更する

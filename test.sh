@@ -122,9 +122,14 @@ assert 8 'int main() { int x=1; return sizeof(x=2); }'
 assert 1 'int main() { int x=1; sizeof(x=2); return x; }'
 
 assert 3 'int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }'
-assert 12 'int main() { int x[10], *y; *x=4; *(x+4)=8; y=x; return *y + *(y+4); }'
+assert 12 'int main() { int x[5], *y; *x=4; *(x+4)=8; y=x; return *y + *(y+4); }'
+assert 16 'int main() { int x[5], *y; *x=17; *(x+4)=1; y=x+4; return *(y-4) - *y; }'
 assert 21 'int main() { int x[6]; x[5]=21; return *(5+x); }'
 assert 71 'int main() { int x[10]; x[9]=71; return 9[x]; }'
 assert 10 'int main() { int x[10]; *(x+0)=1; *(x+1)=1+*(x+0); *(x+2)=*(x+1)+1; x[3]=1+*(x+2); x[4]=*(x+3)+1; x[5]=1+x[4]; x[6]=x[5]+1; 7[x]=1+x[6]; x[8]=7[x]+1; 9[x]=1+8[x]; return 9[x]; }'
+assert 14 'int main() { int x[5], *y; *x=-9; *(x-(-4))=-23; y=x+4; return *(y-4) - *y; }'
+assert 2 'int main() { int x[3]; x[1]=5; *(x-(-2))=7; return (x+2) - x; }'
+assert 10 'int main() { int x[10], y[2]; return y - x; }'
+assert 19 'int main() { int x[10], *y; *x=13; y=&x[0]+4; *y=*(x+6)=3; return y[-4] + x[4] + y[2]; }'
 
 echo OK
