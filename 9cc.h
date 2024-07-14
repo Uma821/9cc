@@ -133,16 +133,20 @@ Function *parse();
 typedef enum {
   TY_INT,
   TY_PTR,
+  TY_ARRAY,
   TY_FUNC,
 } TypeKind;
 
 struct Type {
   TypeKind kind;
-  int size;    // sizeof
+  int size;           // sizeof
  
-  Type *base;  // 〇へのポインタ
-  char *name;  // 定義
-  Token *tok;  // 変数の位置情報など
+  Type *base;         // 〇へのポインタ
+  size_t array_size;  // 配列
+  Type *elem;         // 配列
+  int decayed;        // 配列->ポインタへの降格発生時のフラグ
+  char *name;         // 定義
+  Token *tok;         // 変数の位置情報など
   // 関数
   Type *return_ty;
   Type *params;
@@ -153,6 +157,7 @@ Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
 bool is_integer(Type *ty);
 Type *pointer_to(Type *base);
+Type *array_of(Type *elem, size_t size);
 void add_type(Node *node);
 
 //

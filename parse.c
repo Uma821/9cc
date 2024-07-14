@@ -35,6 +35,17 @@ static Node *new_node_lvar(LVar *lvar, Token *tok) {
   return node;
 }
 
+static Type *arr_to_ptr(Type *ty) {
+  Type *new_type = calloc(1, sizeof(Type));
+  memcpy(new_type, ty, sizeof(Type));
+  new_type->kind = TY_PTR;
+  new_type->size = 8;
+  new_type->base = new_type->elem;
+  new_type->decayed = 1; // 降格
+
+  return new_type;
+}
+
 static LVar *new_lvar(char *name, Type *ty) {
   LVar *lvar = calloc(1, sizeof(LVar));
   lvar->name = name;
@@ -101,6 +112,10 @@ static Type *declarator(Type *ty) { // 宣言
 
   Token *tok_lval = token;
   char* name = get_ident();
+  if (consume("[")) {
+    ty = array_of(ty, expect_number());
+    expect("]");
+  }
   
   ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
   ty->name = name;
@@ -242,8 +257,13 @@ static Node *expr() {
 // assign = equality ("=" assign)?
 static Node *assign() {
   Node *node = equality();
-  if (consume("="))
-    node = new_node(ND_ASSIGN, node, assign());
+  if (consume("=")) {
+    Node *rhs = assign();
+    if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) { // このオペランドの型が配列だったらポインタにする
+      rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
+    }
+    node = new_node(ND_ASSIGN, node, rhs);
+  }
   return node;
 }
 
@@ -292,13 +312,17 @@ static Node *new_add(Node *lhs, Node *rhs) {
 
   // ptr + ptr は計算できない
   if (lhs->ty->base && rhs->ty->base)
-    error_at(token->str, "無効な演算");
+    error_at(token->str, "無効な演算(pointer+pointer)");
 
   // num + ptr を ptr + num にひっくり返す.
   if (!lhs->ty->base && rhs->ty->base) {
     Node *tmp = lhs;
     lhs = rhs;
     rhs = tmp;
+  }
+
+  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY) {
+    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
   }
 
   // ptr + num
@@ -374,8 +398,12 @@ static Node *unary() {
     return primary();
   if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), primary());
-  if (consume("*"))
-    return new_node(ND_DEREF,unary(), NULL);
+  if (consume("*")) {
+    Node *node = unary();
+    if (node->kind == ND_LVAR && node->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
+      node->ty = arr_to_ptr(node->lvar->ty); // ポインタに変換して付け替え
+    return new_node(ND_DEREF, node, NULL);
+  }
   if (consume("&"))
     return new_node(ND_ADDR, unary(), NULL);
   return primary();
@@ -397,7 +425,7 @@ static Node *funcall(Token *tok) {
   return node;  
 }
 
-// primary = num | ident funcall? | "(" expr ")" | "sizeof" unary
+// primary = num | ident [expr]? funcall? | "(" expr ")" | "sizeof" unary
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -423,7 +451,15 @@ static Node *primary() {
     if (!lvar) 
       error_at(token->str, "未定義の変数");
 
-    return new_node_lvar(lvar, tok);
+    Node *node = new_node_lvar(lvar, tok);
+    if (consume("[")) {
+      if (node->lvar->ty->kind == TY_ARRAY) // この変数が配列だったらポインタにする
+        node->ty = arr_to_ptr(node->lvar->ty); // ポインタに変換して付け替え
+      node = new_node(ND_DEREF, new_add(node, expr()), NULL);
+      expect("]");
+      return node;
+    }
+    return node;
   }
 
   // そうでなければ数値のはず

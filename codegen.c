@@ -40,9 +40,12 @@ static void gen(Node *node) {
     return;
   case ND_LVAR:
     gen_lval(node);
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    if(!node->ty->decayed) { // 配列からポインタへの降格？暗黙型変換が生じたか？
+    // 配列は先頭要素へのアドレスを返せばよい、以下3行はその中身を取り出すため必要ない
+      printf("  pop rax\n");
+      printf("  mov rax, [rax]\n");
+      printf("  push rax\n");
+    }
     return;
   case ND_ADDR:
     gen_lval(node->lhs);
@@ -188,7 +191,9 @@ static void assign_lvar_offsets(Function *prog) {
   for (Function *fn = prog; fn; fn = fn->next) {
     int offset = 0;
     for (LVar *lvar = fn->locals; lvar; lvar = lvar->next) {
-      offset += 8;
+      offset += lvar->ty->size;
+      if(lvar->ty->size == 0)
+        fprintf(stderr, "size==0???\n");
       lvar->offset = offset;
     }
     fn->stack_size = align_to(offset, 16); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)

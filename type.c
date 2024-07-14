@@ -26,6 +26,15 @@ Type *pointer_to(Type *base) {
   return ty;
 }
 
+Type *array_of(Type *elem, size_t array_size) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TY_ARRAY;
+  ty->size = array_size * elem->size; // sizeof
+  ty->array_size = array_size; // 要素数
+  ty->elem = elem;
+  return ty;
+}
+
 // ポインタの演算と整数型の演算では処理が変わるため
 void add_type(Node *node) {
   if (!node || node->ty)
@@ -62,7 +71,8 @@ void add_type(Node *node) {
     node->ty = new_type(TY_INT);
     return;
   case ND_LVAR:
-    node->ty = node->lvar->ty;
+    if(!node->ty) // 降格が起こっていない(デフォルト)
+      node->ty = node->lvar->ty;
     return;
   case ND_ADDR:
     node->ty = pointer_to(node->lhs->ty);
