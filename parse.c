@@ -82,6 +82,7 @@ static Node *relational();
 static Node *add();
 static Node *mul();
 static Node *unary();
+static Node *postfix();
 static Node *primary();
 
 // type-suffix = ("(" func-params? ")")?
@@ -310,6 +311,12 @@ static Node *new_add(Node *lhs, Node *rhs) {
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
     return new_node(ND_ADD, lhs, rhs);
 
+  // 配列に対するaddは先頭要素のアドレスに降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY)
+    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
+  if (rhs->ty->kind == TY_ARRAY && rhs->lvar->ty->kind == TY_ARRAY)
+    rhs->ty = arr_to_ptr(rhs->lvar->ty);
+
   // ptr + ptr は計算できない
   if (lhs->ty->base && rhs->ty->base)
     error_at(token->str, "無効な演算(pointer+pointer)");
@@ -319,10 +326,6 @@ static Node *new_add(Node *lhs, Node *rhs) {
     Node *tmp = lhs;
     lhs = rhs;
     rhs = tmp;
-  }
-
-  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY) {
-    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
   }
 
   // ptr + num
@@ -393,6 +396,7 @@ static Node *mul() {
 // unary = ("+" | "-")? primary
 //       | "*" unary
 //       | "&" unary 
+//       | postfix
 static Node *unary() {
   if (consume("+"))
     return primary();
@@ -406,7 +410,17 @@ static Node *unary() {
   }
   if (consume("&"))
     return new_node(ND_ADDR, unary(), NULL);
-  return primary();
+  return postfix();
+}
+
+// postfix = primary ("[" expr "]")*
+static Node *postfix() {
+  Node *node = primary();
+  while (consume("[")) {
+    node = new_node(ND_DEREF, new_add(node, expr()), NULL);
+    expect("]");
+  }
+  return node;
 }
 
 // funcall = "(" (assign ("," assign)*)? ")"
@@ -425,7 +439,7 @@ static Node *funcall(Token *tok) {
   return node;  
 }
 
-// primary = num | ident [expr]? funcall? | "(" expr ")" | "sizeof" unary
+// primary = num | ident funcall? | "(" expr ")" | "sizeof" unary
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -451,15 +465,7 @@ static Node *primary() {
     if (!lvar) 
       error_at(token->str, "未定義の変数");
 
-    Node *node = new_node_lvar(lvar, tok);
-    if (consume("[")) {
-      if (node->lvar->ty->kind == TY_ARRAY) // この変数が配列だったらポインタにする
-        node->ty = arr_to_ptr(node->lvar->ty); // ポインタに変換して付け替え
-      node = new_node(ND_DEREF, new_add(node, expr()), NULL);
-      expect("]");
-      return node;
-    }
-    return node;
+    return new_node_lvar(lvar, tok);
   }
 
   // そうでなければ数値のはず
