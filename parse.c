@@ -74,6 +74,7 @@ static Type *decl_basictype() {
 
 static Type *declarator(Type *ty);
 Function *parse();
+static Function *function();
 static Node *stmt();
 static Node *expr();
 static Node *assign();
@@ -106,7 +107,7 @@ static Type *type_suffix(Type *ty) {
   return ty;
 }
 
-// declarator = decl_basictype "*" * ident type-suffix
+// declarator = "*" * ident type-suffix
 static Type *declarator(Type *ty) { // 宣言
   while (consume("*"))
     ty = pointer_to(ty);
@@ -155,6 +156,18 @@ static void create_param_lvars(Type *param) {
   }
 }
 
+// program = function*
+Function *parse() {
+  Function head = {};
+  Function *cur = &head;
+
+  while (!at_eof())
+    cur = cur->next = function();
+    //error("正しくパースできませんでした。");
+  return head.next;
+}
+
+// function = decl_basictype declarator stmt
 static Function *function() {
   Type *ty = decl_basictype();
   ty = declarator(ty);
@@ -173,19 +186,8 @@ static Function *function() {
   return fn;
 }
 
-// program = stmt*
-Function *parse() {
-  Function head = {};
-  Function *cur = &head;
-
-  while (!at_eof())
-    cur = cur->next = function();
-    //error("正しくパースできませんでした。");
-  return head.next;
-}
-
 // stmt = expr? ";"
-//      | "{" stmt* "}"
+//      | "{" (declaration | stmt)* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
