@@ -187,8 +187,8 @@ static void gen(Node *node) {
 }
 
 // ローカル変数にオフセット割り当て
-static void assign_lvar_offsets(Function *prog) {
-  for (Function *fn = prog; fn; fn = fn->next) {
+static void assign_lvar_offsets(Function *funcs) {
+  for (Function *fn = funcs; fn; fn = fn->next) {
     int offset = 0;
     for (LVar *lvar = fn->locals; lvar; lvar = lvar->next) {
       offset += lvar->ty->size;
@@ -200,11 +200,11 @@ static void assign_lvar_offsets(Function *prog) {
   }
 }
 
-void codegen(Function *prog) {
-  assign_lvar_offsets(prog);
+void codegen(Program *prog) {
+  assign_lvar_offsets(prog->funcs);
   printf(".intel_syntax noprefix\n");
 
-  for (Function *fn = prog; fn; fn = fn->next) {
+  for (Function *fn = prog->funcs; fn; fn = fn->next) {
     // アセンブリの前半部分を出力
     printf(".globl %s\n", fn->name);
     printf("%s:\n", fn->name);

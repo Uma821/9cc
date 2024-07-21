@@ -1,10 +1,18 @@
 #include "9cc.h"
 
 LVar *locals;
+GVar *globals;
 
-// 変数を名前で検索する。見つからなかった場合はNULLを返す。
+// ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
 static LVar *find_lvar(Token *tok) {
   for (LVar *var = locals; var; var = var->next)
+    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+      return var;
+  return NULL;
+}
+// グローバル変数を名前で検索する。見つからなかった場合はNULLを返す。
+static GVar *find_gvar(Token *tok) {
+  for (GVar *var = globals; var; var = var->next)
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
   return NULL;
@@ -34,6 +42,13 @@ static Node *new_node_lvar(LVar *lvar, Token *tok) {
   node->tok = tok;
   return node;
 }
+static Node *new_node_gvar(GVar *gvar, Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_GVAR;
+  node->gvar = gvar;
+  node->tok = tok;
+  return node;
+}
 
 static Type *arr_to_ptr(Type *ty) {
   Type *new_type = calloc(1, sizeof(Type));
@@ -55,6 +70,15 @@ static LVar *new_lvar(char *name, Type *ty) {
   locals = lvar;
   return lvar;
 }
+static GVar *new_gvar(char *name, Type *ty) {
+  GVar *gvar = calloc(1, sizeof(GVar));
+  gvar->name = name;
+  gvar->ty = ty;
+  gvar->len = strlen(name);
+  gvar->next = globals;
+  globals = gvar;
+  return gvar;
+}
 
 static char *get_ident() {
   if (token->kind != TK_IDENT)
@@ -72,8 +96,8 @@ static Type *decl_basictype() {
   return new_type(TY_INT);
 }
 
-static Type *declarator(Type *ty);
-Function *parse();
+static Type *declarator(Type *ty, char **name, Token **tok_lval);
+Program *parse();
 static Function *function();
 static Node *stmt();
 static Node *expr();
@@ -96,7 +120,11 @@ static Type *type_suffix(Type *ty) {
 
     while (!consume(")")) {
       Type *basety = decl_basictype();
-      Type *ty = declarator(basety);
+      char *name;
+      Token *tok_lval;
+      Type *ty = declarator(basety, &name, &tok_lval);
+      ty->name = name;
+      ty->tok = tok_lval;
       cur = cur->next = ty;
       consume(",");
     }
@@ -108,20 +136,17 @@ static Type *type_suffix(Type *ty) {
 }
 
 // declarator = "*" * ident type-suffix
-static Type *declarator(Type *ty) { // 宣言
+static Type *declarator(Type *ty, char **name, Token **tok_lval) { // 宣言
   while (consume("*"))
     ty = pointer_to(ty);
 
-  Token *tok_lval = token;
-  char* name = get_ident();
+  *tok_lval = token;
+  *name = get_ident();
   if (consume("[")) {
     ty = array_of(ty, expect_number());
     expect("]");
   }
   
-  ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
-  ty->name = name;
-  ty->tok = tok_lval;
   return ty;
 }
 
@@ -133,11 +158,48 @@ static Node *declaration() {
   Node *cur = &head;
 
   while (!consume(";")) {
-    Type *ty = declarator(basety);
+    char *name;
+    Token *tok_lval;
+    Type *ty = declarator(basety, &name, &tok_lval);
+    ty->name = name;
+    ty->tok = tok_lval;
+    if (consume("(")) { // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
+      return NULL; 
+    }
     LVar *lvar = new_lvar(ty->name, ty);
 
     if (consume("=")) {
       Node *lhs = new_node_lvar(lvar, ty->tok);
+      cur = cur->next = new_node(ND_ASSIGN, lhs, assign());
+    }
+
+    consume(",");
+  }
+
+  Node *node = new_node(ND_BLOCK, NULL, NULL);
+  node->body = head.next;
+  return node;
+}
+// gvar_declaration = decl_basictype (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+static Node *gvar_declaration() {
+  Type *basety = decl_basictype();
+
+  Node head = {};
+  Node *cur = &head;
+
+  while (!consume(";")) {
+    char *name;
+    Token *tok_lval;
+    Type *ty = declarator(basety, &name, &tok_lval);
+    ty->name = name;
+    ty->tok = tok_lval;
+    if (consume("(")) { // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
+      return NULL; 
+    }
+    GVar *gvar = new_gvar(ty->name, ty);
+
+    if (consume("=")) {
+      Node *lhs = new_node_gvar(gvar, ty->tok);
       cur = cur->next = new_node(ND_ASSIGN, lhs, assign());
     }
 
@@ -156,21 +218,41 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-// program = function*
-Function *parse() {
-  Function head = {};
-  Function *cur = &head;
+// program = (function | gvar_declaration ";")*
+Program *parse() {
+  Program *prog = calloc(1, sizeof(Program));
+  Function func_head = {};
+  Function *func_cur = &func_head;
+  Node gvar_head = {};
+  Node *gvar_cur = &gvar_head;
 
-  while (!at_eof())
-    cur = cur->next = function();
+  while (!at_eof()) {
+    Token *origin = token; // 解析失敗時はトークンを元に戻す
+    Node *globalvar = gvar_declaration();
+    if (globalvar) { // グローバル変数宣言として読むことができるか
+      globalvar->kind = ND_GVAR;
+      gvar_cur = gvar_cur->next = globalvar;
+      continue;
+    }
+    token = origin;
+    func_cur = func_cur->next = function();
+  }
     //error("正しくパースできませんでした。");
-  return head.next;
+
+  prog->funcs = func_head.next;
+  prog->gvar_declarations = gvar_head.next;
+  return prog;
 }
 
 // function = decl_basictype declarator stmt
 static Function *function() {
   Type *ty = decl_basictype();
-  ty = declarator(ty);
+  char *name;
+  Token *tok_lval;
+  ty = declarator(ty, &name, &tok_lval);
+  ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
+  ty->name = name;
+  ty->tok = tok_lval;
 
   locals = NULL; // NULLのときが終端とするため
 

@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   // 結果はcodeに保存される
   user_input = argv[1];
   tokenize();
-  Function *prog = parse();
+  Program *prog = parse();
 
   codegen(prog);
   return 0;

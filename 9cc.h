@@ -54,9 +54,8 @@ void tokenize();
 // parse.c
 //
 
-typedef struct LVar LVar;
-
 // ローカル変数の型
+typedef struct LVar LVar;
 struct LVar {
   LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
@@ -67,6 +66,19 @@ struct LVar {
 
 // ローカル変数
 extern LVar *locals;
+
+// グローバル変数の型
+typedef struct GVar GVar;
+struct GVar {
+  GVar *next; // 次の変数かNULL
+  char *name; // 変数の名前
+  Type *ty;   // Type
+  int len;    // 名前の長さ
+  // int offset; // RBPからのオフセット
+};
+
+// グローバル変数
+extern GVar *globals;
 
 // 抽象構文木のノードの種類
 typedef enum {
@@ -87,6 +99,7 @@ typedef enum {
   ND_ADDR,    // 単項*
   ND_DEREF,   // 単項&
   ND_LVAR,    // ローカル変数
+  ND_GVAR,    // グローバル変数
   ND_NUM,     // 整数
 } NodeKind;
 
@@ -102,6 +115,7 @@ struct Node {
   Node *rhs;      // 右辺
   int val;        // kindがND_NUMの場合のみ使う
   LVar *lvar;     // kindがND_LVARの場合のみ使う
+  GVar *gvar;     // kindがND_GVARの場合のみ使う
   Node *cond;     // kindがND_IF,ND_LOOPの場合のみ使う
   Node *then;     // kindがND_IF,ND_LOOPの場合のみ使う
   Node *els;      // kindがND_IFの場合のみ使う
@@ -124,7 +138,14 @@ struct Function {
   int stack_size;
 };
 
-Function *parse();
+// 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
+typedef struct Program Program;
+struct Program {
+  Function *funcs;
+  Node *gvar_declarations;
+};
+
+Program *parse();
 
 //
 // type.c
@@ -164,4 +185,4 @@ void add_type(Node *node);
 // codegen.c
 //
 
-void codegen(Function *prog);
+void codegen(Program *prog);

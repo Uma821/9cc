@@ -132,4 +132,11 @@ assert 2 'int main() { int x[3]; x[1]=5; *(x-(-2))=7; return (x+2) - x; }'
 assert 10 'int main() { int x[10], y[2]; return y - x; }'
 assert 19 'int main() { int x[10], *y; *x=13; y=&x[0]+4; *y=*(x+6)=3; return y[-4] + x[4] + y[2]; }'
 
+assert 0 'int a; int main() { return 0; }'
+assert 2 'int *b; int main(){ if (1) return 2; return 3; }'
+assert 10 'int hoge[10]; int main() { int i=0; while(i<10) i=i+1; return i; }'
+assert 8 'int *piyo[10]; int main() { int *x; return sizeof(x); }'
+
+# assert 0 'int *foo; int main() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return foo[0] - foo[-1] + x[1]; }'
+
 echo OK
