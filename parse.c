@@ -96,7 +96,7 @@ static Type *decl_basictype() {
   return new_type(TY_INT);
 }
 
-static Type *declarator(Type *ty, char **name, Token **tok_lval);
+static Type *declarator(Type *ty);
 Program *parse();
 static Function *function();
 static Node *stmt();
@@ -110,43 +110,56 @@ static Node *unary();
 static Node *postfix();
 static Node *primary();
 
-// type-suffix = ("(" func-params? ")")?
+// type-suffix = ("(" func-params? ")")
 // func-params = param ("," param)*
 // param       = declarator
 static Type *type_suffix(Type *ty) {
-  if (consume("(")) {
-    Type head = {};
-    Type *cur = &head;
+  expect("(");
+  Type head = {};
+  Type *cur = &head;
 
-    while (!consume(")")) {
-      Type *basety = decl_basictype();
-      char *name;
-      Token *tok_lval;
-      Type *ty = declarator(basety, &name, &tok_lval);
-      ty->name = name;
-      ty->tok = tok_lval;
-      cur = cur->next = ty;
-      consume(",");
-    }
-
-    ty = func_type(ty);
-    ty->params = head.next;
+  while (!consume(")")) {
+    Type *basety = decl_basictype();
+    Type *ty = declarator(basety);
+    cur = cur->next = ty;
+    consume(",");
   }
+
+  ty = func_type(ty);
+  ty->params = head.next;
+  
   return ty;
 }
 
-// declarator = "*" * ident type-suffix
-static Type *declarator(Type *ty, char **name, Token **tok_lval) { // 宣言
+// declarator = "*" * ident ( "[" number "]" )?
+static Type *declarator(Type *ty) { // 宣言子
   while (consume("*"))
     ty = pointer_to(ty);
 
-  *tok_lval = token;
-  *name = get_ident();
+  Token *tok_lval = token;
+  char *name = get_ident();
+  if (consume("(")) // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
+    return NULL;
   if (consume("[")) {
     ty = array_of(ty, expect_number());
     expect("]");
   }
   
+  ty->name = name;
+  ty->tok = tok_lval;
+  return ty;
+}
+// function_declarator = "*" * ident type-suffix
+static Type *function_declarator(Type *ty) { // 関数宣言子
+  while (consume("*"))
+    ty = pointer_to(ty);
+
+  Token *tok_lval = token;
+  char *name = get_ident();
+
+  ty = type_suffix(ty); // 関数の宣言時の引数読み込み等
+  ty->name = name;
+  ty->tok = tok_lval;
   return ty;
 }
 
@@ -158,14 +171,9 @@ static Node *declaration() {
   Node *cur = &head;
 
   while (!consume(";")) {
-    char *name;
-    Token *tok_lval;
-    Type *ty = declarator(basety, &name, &tok_lval);
-    ty->name = name;
-    ty->tok = tok_lval;
-    if (consume("(")) { // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
-      return NULL; 
-    }
+    Type *ty = declarator(basety);
+    if (!ty) // 宣言として読み込み失敗
+      return NULL;
     LVar *lvar = new_lvar(ty->name, ty);
 
     if (consume("=")) {
@@ -188,14 +196,9 @@ static Node *gvar_declaration() {
   Node *cur = &head;
 
   while (!consume(";")) {
-    char *name;
-    Token *tok_lval;
-    Type *ty = declarator(basety, &name, &tok_lval);
-    ty->name = name;
-    ty->tok = tok_lval;
-    if (consume("(")) { // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
-      return NULL; 
-    }
+    Type *ty = declarator(basety);
+    if (!ty) // 宣言として読み込み失敗
+      return NULL;
     GVar *gvar = new_gvar(ty->name, ty);
 
     if (consume("=")) {
@@ -244,15 +247,10 @@ Program *parse() {
   return prog;
 }
 
-// function = decl_basictype declarator stmt
-static Function *function() {
+// function = decl_basictype function_declarator stmt
+static Function *function() { // Function definition
   Type *ty = decl_basictype();
-  char *name;
-  Token *tok_lval;
-  ty = declarator(ty, &name, &tok_lval);
-  ty = type_suffix(ty); // 関数の宣言だった時の引数読み込み等
-  ty->name = name;
-  ty->tok = tok_lval;
+  ty = function_declarator(ty);
 
   locals = NULL; // NULLのときが終端とするため
 
