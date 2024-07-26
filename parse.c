@@ -394,10 +394,16 @@ static Node *new_add(Node *lhs, Node *rhs) {
     return new_node(ND_ADD, lhs, rhs);
 
   // 配列に対するaddは先頭要素のアドレスに降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY)
+  // 配列のローカル変数に対する降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_LVAR && lhs->lvar->ty->kind == TY_ARRAY)
     lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->lvar->ty->kind == TY_ARRAY)
+  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY)
     rhs->ty = arr_to_ptr(rhs->lvar->ty);
+  // 配列のグローバル変数に対する降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_GVAR && lhs->gvar->ty->kind == TY_ARRAY)
+    lhs->ty = arr_to_ptr(lhs->gvar->ty); // ポインタに変換して付け替え
+  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_GVAR && rhs->gvar->ty->kind == TY_ARRAY)
+    rhs->ty = arr_to_ptr(rhs->gvar->ty);
 
   // ptr + ptr は計算できない
   if (lhs->ty->base && rhs->ty->base)
@@ -424,11 +430,17 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
     return new_node(ND_SUB, lhs, rhs);
 
-  // 配列に対するaddは先頭要素のアドレスに降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->lvar->ty->kind == TY_ARRAY)
+  // 配列に対するsubは先頭要素のアドレスに降格
+  // 配列のローカル変数に対する降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_LVAR && lhs->lvar->ty->kind == TY_ARRAY)
     lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->lvar->ty->kind == TY_ARRAY)
+  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY)
     rhs->ty = arr_to_ptr(rhs->lvar->ty);
+  // 配列のグローバル変数に対する降格
+  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_GVAR && lhs->gvar->ty->kind == TY_ARRAY)
+    lhs->ty = arr_to_ptr(lhs->gvar->ty); // ポインタに変換して付け替え
+  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_GVAR && rhs->gvar->ty->kind == TY_ARRAY)
+    rhs->ty = arr_to_ptr(rhs->gvar->ty);
 
   // ptr - num
   if (lhs->ty->base && is_integer(rhs->ty)) {
@@ -550,10 +562,14 @@ static Node *primary() {
     }
 
     LVar *lvar = find_lvar(tok);
-    if (!lvar) 
+    if (lvar) 
+      return new_node_lvar(lvar, tok);
+    // 見つからなければグローバル変数を探す
+    GVar *gvar = find_gvar(tok);
+    if (!gvar) 
       error_at(token->str, "未定義の変数");
 
-    return new_node_lvar(lvar, tok);
+    return new_node_gvar(gvar, tok);
   }
 
   // そうでなければ数値のはず

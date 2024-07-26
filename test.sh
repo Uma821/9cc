@@ -14,7 +14,7 @@ assert() {
   input="$2"
 
   ./9cc "$input" > tmp.s
-  cc -o tmp tmp.s tmp2.o
+  cc -static -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"
 
@@ -137,6 +137,10 @@ assert 2 'int *b; int main(){ if (1) return 2; return 3; }'
 assert 10 'int hoge[10]; int main() { int i=0; while(i<10) i=i+1; return i; }'
 assert 8 'int *piyo[10]; int main() { int *x; return sizeof(x); }'
 
-# assert 0 'int *foo; int main() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return foo[0] - foo[-1] + x[1]; }'
+assert 1 'int a; int main() { a=1; return a; }'
+assert 0 'int fuga[5]; int main() { int i=0; return fuga[4]; }'
+assert 5 'int fuga[5]; int main() { int i=0; while(i<5) { fuga[i]=i+1; i=i+1; } return fuga[4]; }'
+assert 15 'int fuga[10]; int main() { int i=1; while(i<10) { fuga[i]=2*fuga[i-1]+1; i=i+1; } return fuga[4]; }'
+assert 0 'int *foo; int main() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return foo[0] - foo[-1] + x[1]; }'
 
 echo OK
