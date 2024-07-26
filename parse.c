@@ -493,15 +493,15 @@ static Node *mul() {
   }
 }
 
-// unary = ("+" | "-")? primary
+// unary = ("+" | "-")? postfix
 //       | "*" unary
 //       | "&" unary 
 //       | postfix
 static Node *unary() {
   if (consume("+"))
-    return primary();
+    return postfix();
   if (consume("-"))
-    return new_node(ND_SUB, new_node_num(0), primary());
+    return new_node(ND_SUB, new_node_num(0), postfix());
   if (consume("*")) {
     Node *node = unary();
     if (node->kind == ND_LVAR && node->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
