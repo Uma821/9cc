@@ -3,7 +3,10 @@
 Type *new_type(TypeKind kind) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = kind;
-  ty->size = 8;
+  if (kind == TY_CHAR)
+    ty->size = 1; // sizeof(char) == 1
+  else
+    ty->size = 8;
   return ty;
 }
 
@@ -15,7 +18,7 @@ Type *func_type(Type *return_ty) {
 }
 
 bool is_integer(Type *ty) {
-  return ty->kind == TY_INT;
+  return ty->kind == TY_INT || ty->kind == TY_CHAR;
 }
 
 Type *pointer_to(Type *base) {
@@ -60,8 +63,10 @@ void add_type(Node *node) {
     return;
   case ND_ASSIGN:
     if (node->lhs->ty->kind != node->rhs->ty->kind)
-      error_at(node->lhs->tok->str, "代入不可");
+      if (node->lhs->ty->kind == TY_CHAR && node->rhs->ty->kind == TY_INT) {} // 変換可能
+      else error_at(node->lhs->tok->str, "代入不可");
     node->ty = node->lhs->ty;
+    return;
   case ND_EQ:
   case ND_NE:
   case ND_LT:

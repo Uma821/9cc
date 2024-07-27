@@ -153,6 +153,7 @@ Program *parse();
 
 typedef enum {
   TY_INT,
+  TY_CHAR,
   TY_PTR,
   TY_ARRAY,
   TY_FUNC,

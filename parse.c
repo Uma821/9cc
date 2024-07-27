@@ -88,12 +88,14 @@ static char *get_ident() {
   return strndup(tok->str, tok->len);
 }
 
-// decl_basictype = "int"
+// decl_basictype = ("int" | "char")
 // 変数宣言のことも考慮して別の関数に振り分けた
 static Type *decl_basictype() {
-  if (!consume_keyword("int"))
+  if (consume_keyword("int"))
+    return new_type(TY_INT);
+  if (!consume_keyword("char"))
     error_at(token->str, "型名が必要");
-  return new_type(TY_INT);
+  return new_type(TY_CHAR);
 }
 
 static Type *declarator(Type *ty);
@@ -280,7 +282,7 @@ static Node *stmt() {
     head.next = NULL;
     Node *cur = &head;
     while (!consume("}")) {
-      if (equal_keyword("int"))
+      if (equal_keyword("int") || equal_keyword("char"))
         cur = cur->next = declaration();
       else
         cur = cur->next = stmt();
@@ -417,7 +419,7 @@ static Node *new_add(Node *lhs, Node *rhs) {
   }
 
   // ptr + num
-  rhs = new_node(ND_MUL, rhs, new_node_num(8)); // シフト演算子を定義したら変更する
+  rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
   return new_node(ND_ADD, lhs, rhs);
 }
 
@@ -444,7 +446,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
 
   // ptr - num
   if (lhs->ty->base && is_integer(rhs->ty)) {
-    rhs = new_node(ND_MUL, rhs, new_node_num(8)); // シフト演算子を定義したら変更する
+    rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
     add_type(rhs);
     Node *node = new_node(ND_SUB, lhs, rhs);
     node->ty = lhs->ty;
@@ -456,7 +458,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   if (lhs->ty->base && rhs->ty->base) {
     Node *node = new_node(ND_SUB, lhs, rhs);
     node->ty = new_type(TY_INT);
-    return new_node(ND_DIV, node, new_node_num(8)); // シフト演算子を定義したら変更する
+    return new_node(ND_DIV, node, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
   }
 
   error_at(token->str, "無効な演算");

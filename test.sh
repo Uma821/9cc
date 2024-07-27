@@ -144,4 +144,10 @@ assert 15 'int fuga[10]; int main() { int i=1; while(i<10) { fuga[i]=2*fuga[i-1]
 assert 0 'int *foo; int main() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return foo[0] - foo[-1] + x[1]; }'
 assert 6 'int *foo; int main() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return - foo[0] - foo[-1] + x[1]; }'
 
+assert 0 'char x[3]; char y[3]; int main() { x[0] = y[1]; return 0; }'
+assert 3 'char x[3]; int main() { x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }'
+assert 3 'int main() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0] + y; }'
+assert 1 'char x[3]; int main() { x[0] = -1; return x[1] == 0; }'
+assert 2 'int main() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }'
+
 echo OK

@@ -47,8 +47,13 @@ static void gen(Node *node) {
     if(!node->ty->decayed) { // 配列からポインタへの降格？暗黙型変換が生じたか？
     // 配列は先頭要素へのアドレスを返せばよい、以下3行はその中身を取り出すため必要ない
       printf("  pop rax\n");
-      printf("  mov rax, [rax]\n");
-      printf("  push rax\n");
+      if(node->ty->kind == TY_CHAR) {
+        printf("  movsx eax, BYTE PTR [rax]\n");
+        printf("  push rax\n");
+      } else {
+        printf("  mov rax, [rax]\n");
+        printf("  push rax\n");
+      }
     }
     return;
   case ND_ADDR:
@@ -57,18 +62,30 @@ static void gen(Node *node) {
   case ND_DEREF:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    if(node->ty->kind == TY_CHAR) {
+      printf("  movsx eax, BYTE PTR [rax]\n");
+      printf("  push rax\n");
+    } else {
+      printf("  mov rax, [rax]\n");
+      printf("  push rax\n");
+    }
     return;
 
   case ND_ASSIGN:
     gen_variable(node->lhs);
     gen(node->rhs);
 
-    printf("  pop rdi\n");
-    printf("  pop rax\n");
-    printf("  mov [rax], rdi\n");
-    printf("  push rdi\n");
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rdi\n");
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rdi\n");
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
     return;
   case ND_BLOCK:
     for (Node *n = node->body; n; n = n->next) {
