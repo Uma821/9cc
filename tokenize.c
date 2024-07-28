@@ -26,7 +26,7 @@ void error(char *fmt, ...) {
 void error_at(char *loc, char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
-  
+
   // locが含まれている行の開始地点と終了地点を取得
   char *line = loc;
   while (user_input < line && line[-1] != '\n')
@@ -195,6 +195,24 @@ void tokenize() {
     // 空白文字をスキップ
     if (isspace(*p)) {
       p++;
+      continue;
+    }
+
+    // 行コメントをスキップ
+    if(strncmp(p, "//", 2) == 0) {
+      p += 2;
+      while(*p != '\n') {
+        p++;
+      }
+      continue;
+    }
+
+    // ブロックコメントをスキップ
+    if(strncmp(p, "/*", 2) == 0) {
+      char *q = strstr(p + 2, "*/");
+      if (!q)
+        error_at(p, "コメントが閉じられていません");
+      p = q + 2;
       continue;
     }
 

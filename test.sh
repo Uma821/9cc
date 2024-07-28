@@ -161,4 +161,19 @@ assert 97 'int main() { char *x = "abc"; return x[0]; }'
 assert 2 'int main() { char *x; x = "abc"; return x[2]-x[0]; }'
 assert 8 'int main() { return sizeof("abcdefg"); }'
 
+assert 5 'int main() {
+  int //b=256876;
+  a = 5;
+  return a;
+}'
+assert 10 'int main() {
+  int a=10, b=2;
+  int c = a//*
+  // */ b
+  ;
+  return c;
+}'
+assert 1 'int main() { /*commentです
+*/ return 1; }'
+
 echo OK
