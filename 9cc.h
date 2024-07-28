@@ -103,7 +103,10 @@ typedef enum {
   ND_SUB,     // -
   ND_MUL,     // *
   ND_DIV,     // /
+  ND_REM,     // %
   ND_ASSIGN,  // =
+  ND_LOGOR,   // ||
+  ND_LOGAND,  // &&
   ND_EQ,      // ==
   ND_NE,      // !=
   ND_LT,      // <

@@ -125,6 +125,8 @@ static Function *function();
 static Node *stmt();
 static Node *expr();
 static Node *assign();
+static Node *logor();
+static Node *logand();
 static Node *equality();
 static Node *relational();
 static Node *add();
@@ -370,9 +372,9 @@ static Node *expr() {
   return assign();
 }
 
-// assign = equality ("=" assign)?
+// assign = logor ("=" assign)?
 static Node *assign() {
-  Node *node = equality();
+  Node *node = logor();
   if (consume("=")) {
     Node *rhs = assign();
     if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
@@ -382,6 +384,30 @@ static Node *assign() {
     node = new_node(ND_ASSIGN, node, rhs);
   }
   return node;
+}
+
+// logor = logand ("||" logand)*
+static Node *logor() {
+  Node *node = logand();
+  
+  for (;;) {
+    if (consume("||"))
+      node = new_node(ND_LOGOR, node, logand());
+    else
+      return node;
+  }
+}
+
+// logand = equality ("&&" equality)*
+static Node *logand() {
+  Node *node = equality();
+  
+  for (;;) {
+    if (consume("&&"))
+      node = new_node(ND_LOGAND, node, equality());
+    else
+      return node;
+  }
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -513,7 +539,7 @@ static Node *add() {
   }
 }
 
-// mul = unary ("*" unary | "/" unary)*
+// mul = unary ("*" unary | "/" unary | "%" unary)*
 static Node *mul() {
   Node *node = unary();
 
@@ -522,6 +548,8 @@ static Node *mul() {
       node = new_node(ND_MUL, node, unary());
     else if (consume("/"))
       node = new_node(ND_DIV, node, unary());
+    else if (consume("%"))
+      node = new_node(ND_REM, node, unary());
     else
       return node;
   }
@@ -564,6 +592,10 @@ static Node *funcall(Token *tok) {
 
   while (!consume(")")) {
     cur = cur->next = assign();
+    if (cur->kind == ND_LVAR && cur->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
+      cur->ty = arr_to_ptr(cur->lvar->ty); // ポインタに変換して付け替え
+    if (cur->kind == ND_STR && cur->string->ty->kind == TY_ARRAY)
+      cur->ty = arr_to_ptr(cur->string->ty);
     consume(",");
   }
 

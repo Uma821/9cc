@@ -73,6 +73,42 @@ static void gen(Node *node) {
       printf("  push rax\n");
     }
     return;
+  case ND_LOGOR: {
+    int c = count();
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  jne .L.logor.t.%d\n", c); // 短絡評価
+    gen(node->rhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  jne .L.logor.t.%d\n", c);
+    printf("  mov rax, 0\n");
+    printf("  jmp .L.logor.end.%d\n", c);
+    printf(".L.logor.t.%d:\n", c);
+    printf("  mov rax, 1\n");
+    printf(".L.logor.end.%d:\n", c);
+    printf("  push rax\n");
+    return;
+  }
+  case ND_LOGAND: {
+    int c = count();
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .L.logand.f.%d\n", c); // 短絡評価
+    gen(node->rhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .L.logand.f.%d\n", c);
+    printf("  mov rax, 1\n");
+    printf("  jmp .L.logand.end.%d\n", c);
+    printf(".L.logand.f.%d:\n", c);
+    printf("  mov rax, 0\n");
+    printf(".L.logand.end.%d:\n", c);
+    printf("  push rax\n");
+    return;
+  }
 
   case ND_ASSIGN:
     gen_variable(node->lhs);
@@ -180,8 +216,13 @@ static void gen(Node *node) {
     printf("  imul rax, rdi\n");
     break;
   case ND_DIV:
+    printf("  cqo\n"); // RAXに入っている64ビットの値を128ビットに伸ばしてRDXとRAXにセット
+    printf("  idiv rdi\n"); // 被除数は[RDX,RAX] (128)ビット整数とみなす
+    break;
+  case ND_REM:
     printf("  cqo\n");
     printf("  idiv rdi\n");
+    printf("  mov rax, rdx\n"); // 剰余はrdxレジスタに格納される
     break;
   case ND_EQ:
     printf("  cmp rax, rdi\n");

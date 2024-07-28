@@ -1,5 +1,6 @@
 #!/bin/bash
 cat <<EOF | gcc -xc -c -o tmp2.o -
+#include <stdio.h>
 int ret3() { return 3; }
 int ret5() { return 5; }
 int add(int x, int y) { return x+y; }
@@ -175,5 +176,16 @@ assert 10 'int main() {
 }'
 assert 1 'int main() { /*commentです
 */ return 1; }'
+
+assert 3 'int main() { return 13%5; }'
+assert 0 'int main() { return 0||0; }'
+assert 1 'int main() { return 2||0; }'
+assert 1 'int main() { return 0||1; }'
+assert 1 'int main() { return 99||ret16(); } int ret16() { printf("呼び出さないはず\n"); return 16; }'
+assert 0 'int main() { return 0&&0; }'
+assert 0 'int main() { return 7&&0; }'
+assert 0 'int main() { return 0&&ret8(); } int ret8() { printf("呼び出さないはず\n"); return 8; }'
+assert 1 'int main() { return 99&&ret3(); }'
+assert 1 'int main() { int a=ret0(); return a || (3 && ret5()); } int ret0() { return 0; }'
 
 echo OK

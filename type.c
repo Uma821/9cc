@@ -53,12 +53,15 @@ void add_type(Node *node) {
 
   for (Node *n = node->body; n; n = n->next)
     add_type(n);
+  for (Node *n = node->args; n; n = n->next)
+    add_type(n);
 
   switch (node->kind) {
   case ND_ADD: // new_addでひっくり返すから問題なし
   case ND_SUB:
   case ND_MUL:
   case ND_DIV:
+  case ND_REM:
     node->ty = node->lhs->ty;
     return;
   case ND_ASSIGN:
@@ -67,6 +70,8 @@ void add_type(Node *node) {
       else error_at(node->lhs->tok->str, "代入不可");
     node->ty = node->lhs->ty;
     return;
+  case ND_LOGOR:
+  case ND_LOGAND:
   case ND_EQ:
   case ND_NE:
   case ND_LT:

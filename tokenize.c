@@ -161,7 +161,8 @@ static bool is_ident2(char c) {
 
 // pから区切子を読み取り、その長さを返す
 static int read_punct(char *p) {
-  if (startswith(p, "==") || startswith(p, "!=") ||
+  if (startswith(p, "||") || startswith(p, "&&") ||
+      startswith(p, "==") || startswith(p, "!=") ||
       startswith(p, "<=") || startswith(p, ">="))
     return 2;
   return ispunct(*p) ? 1 : 0;
