@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 typedef struct Type Type;
 typedef struct Node Node;
@@ -35,6 +36,8 @@ struct Token {
 
 // 入力プログラム
 extern char *user_input;
+// 入力ファイル名
+extern char *filename;
 
 // 現在着目しているトークン
 extern Token *token;

@@ -1,5 +1,6 @@
 CFLAGS=-std=c11 -g -static -Wall
-SRCS=$(wildcard *.c)
+# tmp.cを除く全ての.cファイルをコンパイルする
+SRCS=$(filter-out tmp.c, $(wildcard *.c))
 OBJS=$(SRCS:.c=.o)
 
 9cc: $(OBJS)
