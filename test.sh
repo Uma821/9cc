@@ -159,6 +159,9 @@ assert 1 'char x[3]; int main() { x[0] = -1; return x[1] == 0; }'
 assert 2 'int main() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }'
 
 assert 97 'int main() { char *x = "abc"; return x[0]; }'
+assert 65 'int main() { return "ABC"[0]; }'
+assert 66 'int main() { return 1["ABC"]; }'
+assert 97 'int main() { return *"abc"; }'
 assert 2 'int main() { char *x; x = "abc"; return x[2]-x[0]; }'
 assert 8 'int main() { return sizeof("abcdefg"); }'
 

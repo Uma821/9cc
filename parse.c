@@ -70,6 +70,19 @@ static Type *arr_to_ptr(Type *ty) {
   return new_type;
 }
 
+static void decay_arr(Node *node) {
+  // nodeに対してまだ型が与えられていない or nodeの型が配列である配列型をポインタに降格させる
+  // 配列のローカル変数に対する降格
+  if ((!node->ty || node->ty->kind == TY_ARRAY) && node->kind == ND_LVAR && node->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
+    node->ty = arr_to_ptr(node->lvar->ty); // ポインタに変換して付け替え
+  // 配列のグローバル変数に対する降格
+  if ((!node->ty || node->ty->kind == TY_ARRAY) && node->kind == ND_GVAR && node->gvar->ty->kind == TY_ARRAY)
+    node->ty = arr_to_ptr(node->gvar->ty);
+  // 文字列リテラルに対する降格
+  if ((!node->ty || node->ty->kind == TY_ARRAY) && node->kind == ND_STR && node->string->ty->kind == TY_ARRAY)
+    node->ty = arr_to_ptr(node->string->ty);
+}
+
 static LVar *new_lvar(char *name, Type *ty) {
   LVar *lvar = calloc(1, sizeof(LVar));
   lvar->name = name;
@@ -204,10 +217,7 @@ static Node *declaration() {
     if (consume("=")) {
       Node *lhs = new_node_lvar(lvar, ty->tok);
       Node *rhs = assign();
-      if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
-        rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
-      if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
-        rhs->ty = arr_to_ptr(rhs->string->ty);
+      decay_arr(rhs); // 右辺が配列ならポインタに降格
       cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
     }
 
@@ -234,10 +244,7 @@ static Node *gvar_declaration() {
     if (consume("=")) {
       Node *lhs = new_node_gvar(gvar, ty->tok);
       Node *rhs = assign();
-      if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
-        rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
-      if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
-        rhs->ty = arr_to_ptr(rhs->string->ty);
+      decay_arr(rhs); // 右辺が配列ならポインタに降格
       cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
     }
 
@@ -377,10 +384,7 @@ static Node *assign() {
   Node *node = logor();
   if (consume("=")) {
     Node *rhs = assign();
-    if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
-      rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
-    if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
-      rhs->ty = arr_to_ptr(rhs->string->ty);
+    decay_arr(rhs); // 右辺が配列ならポインタに降格
     node = new_node(ND_ASSIGN, node, rhs);
   }
   return node;
@@ -454,16 +458,8 @@ static Node *new_add(Node *lhs, Node *rhs) {
     return new_node(ND_ADD, lhs, rhs);
 
   // 配列に対するaddは先頭要素のアドレスに降格
-  // 配列のローカル変数に対する降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_LVAR && lhs->lvar->ty->kind == TY_ARRAY)
-    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY)
-    rhs->ty = arr_to_ptr(rhs->lvar->ty);
-  // 配列のグローバル変数に対する降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_GVAR && lhs->gvar->ty->kind == TY_ARRAY)
-    lhs->ty = arr_to_ptr(lhs->gvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_GVAR && rhs->gvar->ty->kind == TY_ARRAY)
-    rhs->ty = arr_to_ptr(rhs->gvar->ty);
+  decay_arr(lhs); // 配列ならポインタに降格
+  decay_arr(rhs);
 
   // ptr + ptr は計算できない
   if (lhs->ty->base && rhs->ty->base)
@@ -491,16 +487,8 @@ static Node *new_sub(Node *lhs, Node *rhs) {
     return new_node(ND_SUB, lhs, rhs);
 
   // 配列に対するsubは先頭要素のアドレスに降格
-  // 配列のローカル変数に対する降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_LVAR && lhs->lvar->ty->kind == TY_ARRAY)
-    lhs->ty = arr_to_ptr(lhs->lvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY)
-    rhs->ty = arr_to_ptr(rhs->lvar->ty);
-  // 配列のグローバル変数に対する降格
-  if (lhs->ty->kind == TY_ARRAY && lhs->kind == ND_GVAR && lhs->gvar->ty->kind == TY_ARRAY)
-    lhs->ty = arr_to_ptr(lhs->gvar->ty); // ポインタに変換して付け替え
-  if (rhs->ty->kind == TY_ARRAY && rhs->kind == ND_GVAR && rhs->gvar->ty->kind == TY_ARRAY)
-    rhs->ty = arr_to_ptr(rhs->gvar->ty);
+  decay_arr(lhs); // 配列ならポインタに降格
+  decay_arr(rhs);
 
   // ptr - num
   if (lhs->ty->base && is_integer(rhs->ty)) {
@@ -566,8 +554,7 @@ static Node *unary() {
     return new_node(ND_SUB, new_node_num(0), postfix());
   if (consume("*")) {
     Node *node = unary();
-    if (node->kind == ND_LVAR && node->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
-      node->ty = arr_to_ptr(node->lvar->ty); // ポインタに変換して付け替え
+    decay_arr(node); // 配列ならポインタに降格
     return new_node(ND_DEREF, node, NULL);
   }
   if (consume("&"))
@@ -592,10 +579,7 @@ static Node *funcall(Token *tok) {
 
   while (!consume(")")) {
     cur = cur->next = assign();
-    if (cur->kind == ND_LVAR && cur->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
-      cur->ty = arr_to_ptr(cur->lvar->ty); // ポインタに変換して付け替え
-    if (cur->kind == ND_STR && cur->string->ty->kind == TY_ARRAY)
-      cur->ty = arr_to_ptr(cur->string->ty);
+    decay_arr(cur);
     consume(",");
   }
 

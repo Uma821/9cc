@@ -44,11 +44,10 @@ int main() {
               ) / 10000;
         if (22 > y && y > 0 && x > 0 && 80 > x && DTimes10000 > zTimes10000[o]) {
           zTimes10000[o] = DTimes10000;
-          char *ptr = ".,-~:;=!*#$@";
           if (N >= 1)
-          b[o] = ptr[N];
+          b[o] = ".,-~:;=!*#$@"[N];
           else
-          b[o] = ptr[0];
+          b[o] = ".,-~:;=!*#$@"[0];
         }
         phi_times_50=phi_times_50+1;
         update2(&cosphiTimes10000, &sinphiTimes10000, 9998, 200);
