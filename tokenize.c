@@ -98,6 +98,14 @@ Token *consume_ident() {
   return tok;
 }
 
+Token *consume_str() {
+  if (token->kind != TK_STR)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // 新しいトークンを作成してcurに繋げる
 static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
@@ -110,6 +118,10 @@ static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 
 static bool startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
+}
+
+static bool isdoublequote(char c) {
+  return c == '"';
 }
 
 // cが識別子の最初の文字として有効な場合、trueを返す
@@ -167,6 +179,17 @@ void tokenize() {
       char *q = p;
       cur->val = strtol(p, &p, 10);
       cur->len = p - q;
+      continue;
+    }
+
+    // 文字列リテラル
+    if (isdoublequote(*p)) {
+      char *start = p;
+      do {
+        p++;
+      } while (!isdoublequote(*p));
+      ++p;
+      cur = new_token(TK_STR, cur, start, p-start);
       continue;
     }
 

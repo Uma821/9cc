@@ -83,6 +83,10 @@ void add_type(Node *node) {
     if(!node->ty) // 降格が起こっていない(デフォルト)
       node->ty = node->gvar->ty;
     return;
+  case ND_STR:
+    if(!node->ty) // 降格が起こっていない(デフォルト)
+      node->ty = node->string->ty;
+    return;
   case ND_ADDR:
     node->ty = pointer_to(node->lhs->ty);
     return;

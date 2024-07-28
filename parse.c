@@ -2,6 +2,7 @@
 
 LVar *locals;
 GVar *globals;
+Str *strings;
 
 // ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
 static LVar *find_lvar(Token *tok) {
@@ -50,6 +51,14 @@ static Node *new_node_gvar(GVar *gvar, Token *tok) {
   return node;
 }
 
+static Node *new_node_str(Str *str, Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_STR;
+  node->string = str;
+  node->tok = tok;
+  return node;
+}
+
 static Type *arr_to_ptr(Type *ty) {
   Type *new_type = calloc(1, sizeof(Type));
   memcpy(new_type, ty, sizeof(Type));
@@ -78,6 +87,18 @@ static GVar *new_gvar(char *name, Type *ty) {
   gvar->next = globals;
   globals = gvar;
   return gvar;
+}
+
+static Str *new_str(Token *tok) {
+  Type *ty = array_of(new_type(TY_CHAR), tok->len-1);
+  ty->tok = tok;
+
+  Str *str = calloc(1, sizeof(Str));
+  str->literal = strndup(tok->str, tok->len);
+  str->ty = ty;
+  str->next = strings;
+  strings = str;
+  return str;
 }
 
 static char *get_ident() {
@@ -180,7 +201,12 @@ static Node *declaration() {
 
     if (consume("=")) {
       Node *lhs = new_node_lvar(lvar, ty->tok);
-      cur = cur->next = new_node(ND_ASSIGN, lhs, assign());
+      Node *rhs = assign();
+      if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
+        rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
+      if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
+        rhs->ty = arr_to_ptr(rhs->string->ty);
+      cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
     }
 
     consume(",");
@@ -205,7 +231,12 @@ static Node *gvar_declaration() {
 
     if (consume("=")) {
       Node *lhs = new_node_gvar(gvar, ty->tok);
-      cur = cur->next = new_node(ND_ASSIGN, lhs, assign());
+      Node *rhs = assign();
+      if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
+        rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
+      if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
+        rhs->ty = arr_to_ptr(rhs->string->ty);
+      cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
     }
 
     consume(",");
@@ -344,9 +375,10 @@ static Node *assign() {
   Node *node = equality();
   if (consume("=")) {
     Node *rhs = assign();
-    if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) { // このオペランドの型が配列だったらポインタにする
+    if (rhs->kind == ND_LVAR && rhs->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
       rhs->ty = arr_to_ptr(rhs->lvar->ty); // ポインタに変換して付け替え
-    }
+    if (rhs->kind == ND_STR && rhs->string->ty->kind == TY_ARRAY)
+      rhs->ty = arr_to_ptr(rhs->string->ty);
     node = new_node(ND_ASSIGN, node, rhs);
   }
   return node;
@@ -541,7 +573,7 @@ static Node *funcall(Token *tok) {
   return node;  
 }
 
-// primary = num | ident funcall? | "(" expr ")" | "sizeof" unary
+// primary = num | string_literal | ident funcall? | "(" expr ")" | "sizeof" unary
 static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -572,6 +604,12 @@ static Node *primary() {
       error_at(token->str, "未定義の変数");
 
     return new_node_gvar(gvar, tok);
+  }
+
+  tok = consume_str();
+  if (tok) {
+    Str *string = new_str(tok);
+    return new_node_str(string, tok);
   }
 
   // そうでなければ数値のはず

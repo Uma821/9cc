@@ -41,6 +41,9 @@ static void gen(Node *node) {
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;
+  case ND_STR:
+    printf("  push offset .LC%d\n", node->string->num);
+    return;
   case ND_LVAR:
   case ND_GVAR:
     gen_variable(node);
@@ -221,8 +224,16 @@ static void assign_lvar_offsets(Function *funcs) {
   }
 }
 
+// 文字列リテラルに番号を振り分ける
+static void assign_string_literal_num() {
+  int number = 0;
+  for (Str *str = strings; str; str = str->next)
+    str->num = number++;
+}
+
 void codegen(Program *prog) {
   assign_lvar_offsets(prog->funcs);
+  assign_string_literal_num();
   printf(".intel_syntax noprefix\n");
 
   printf(".data\n");
@@ -230,6 +241,11 @@ void codegen(Program *prog) {
     // グローバル変数を定義
     printf("%s:\n", gvar->name);
     printf("  .zero %d\n", gvar->ty->size);
+  }
+  for (Str *str = strings; str; str = str->next) {
+    // 文字列リテラルを配置
+    printf(".LC%d:\n", str->num);
+    printf("  .string %s\n", str->literal);
   }
 
   printf(".text\n");

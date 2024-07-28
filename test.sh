@@ -150,4 +150,8 @@ assert 3 'int main() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0]
 assert 1 'char x[3]; int main() { x[0] = -1; return x[1] == 0; }'
 assert 2 'int main() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }'
 
+assert 97 'int main() { char *x = "abc"; return x[0]; }'
+assert 2 'int main() { char *x; x = "abc"; return x[2]-x[0]; }'
+assert 8 'int main() { return sizeof("abcdefg"); }'
+
 echo OK

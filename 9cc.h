@@ -18,6 +18,7 @@ typedef enum {
   TK_RESERVED, // 記号
   TK_IDENT,    // 識別子
   TK_NUM,      // 整数トークン
+  TK_STR,      // 文字列リテラル
   TK_KEYWORD,  // キーワード
   TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -48,6 +49,7 @@ int expect_number();
 bool at_eof();
 bool at_block();
 Token *consume_ident();
+Token *consume_str();
 void tokenize();
 
 //
@@ -80,6 +82,18 @@ struct GVar {
 // グローバル変数
 extern GVar *globals;
 
+// 文字列リテラルを管理する型
+typedef struct Str Str;
+struct Str {
+  Str *next; // 次の変数かNULL
+  char *literal; // 文字列リテラル
+  Type *ty; // Type
+  int num; // 何番目の文字列リテラルか
+};
+
+// 文字列リテラル
+extern Str *strings;
+
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD,     // +
@@ -101,6 +115,7 @@ typedef enum {
   ND_LVAR,    // ローカル変数
   ND_GVAR,    // グローバル変数
   ND_NUM,     // 整数
+  ND_STR,     // 文字列リテラル
 } NodeKind;
 
 typedef struct Node Node;
@@ -114,6 +129,7 @@ struct Node {
   Node *lhs;      // 左辺
   Node *rhs;      // 右辺
   int val;        // kindがND_NUMの場合のみ使う
+  Str *string;    // kindがND_STRの場合のみ使う
   LVar *lvar;     // kindがND_LVARの場合のみ使う
   GVar *gvar;     // kindがND_GVARの場合のみ使う
   Node *cond;     // kindがND_IF,ND_LOOPの場合のみ使う
