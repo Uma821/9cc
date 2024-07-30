@@ -51,7 +51,7 @@ static void gen(Node *node) {
     // 配列は先頭要素へのアドレスを返せばよい、以下3行はその中身を取り出すため必要ない
       printf("  pop rax\n");
       if(node->ty->kind == TY_CHAR) {
-        printf("  movsx eax, BYTE PTR [rax]\n");
+        printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
         printf("  push rax\n");
       } else {
         printf("  mov rax, [rax]\n");
@@ -66,7 +66,7 @@ static void gen(Node *node) {
     gen(node->lhs);
     printf("  pop rax\n");
     if(node->ty->kind == TY_CHAR) {
-      printf("  movsx eax, BYTE PTR [rax]\n");
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
       printf("  push rax\n");
     } else {
       printf("  mov rax, [rax]\n");

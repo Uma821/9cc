@@ -3,7 +3,7 @@ int assert(int expected, int actual) {
     printf(" => %ld\n", actual);
     return 0;
   }
-  printf(" => %ld expected, but got %ld\n", expected, actual);
+  printf(" => %ld(%lx) expected, but got %ld(%lx)\n", expected, expected, actual, actual);
   exit(1);
 }
 
@@ -129,11 +129,12 @@ int gvar_test4_fuga[10]; int gvar_test4() { int i=1; while(i<10) { gvar_test4_fu
 int *gvar_test5_foo; int gvar_test5() { int x[2]; *x=-6; gvar_test5_foo=x+1; *gvar_test5_foo=x[0]+3; return gvar_test5_foo[0] - gvar_test5_foo[-1] + x[1]; }
 int *gvar_test6_foo; int gvar_test6() { int x[2]; *x=-6; gvar_test6_foo=x+1; *gvar_test6_foo=x[0]+3; return - gvar_test6_foo[0] - gvar_test6_foo[-1] + x[1]; }
 
-char char_test1_x[3]; char char_test1_y[3]; int char_test1() { char_test1_x[0] = char_test1_y[1]; return 0; }
-char char_test2_x[3]; int char_test2() { char_test2_x[0] = -1; char_test2_x[1] = 2; int y; y = 4; return char_test2_x[0] + y; }
-int char_test3() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0] + y; }
-char char_test4_x[3]; int char_test4() { char_test4_x[0] = -1; return char_test4_x[1] == 0; }
-int char_test5() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }
+char char_test_x[3]; char char_test_y[3]; int char_test1() { char_test_x[0] = char_test_y[1]; return 0; }
+int char_test2() { char x[3]; x[0] = -1; x[1] = 2; return x[0]; }
+char char_test_z[3]; int char_test3() { char_test_x[0] = -1; char_test_x[1] = 2; int y; y = 4; return char_test_x[0] + y; }
+int char_test4() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0] + y; }
+char char_test4_x[3]; int char_test5() { char_test4_x[0] = -1; return char_test4_x[1] == 0; }
+int char_test6() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }
 
 int string_literal_test1() { char *x = "abc"; return x[0]; }
 int string_literal_test2() { return "ABC"[0]; }
@@ -385,32 +386,28 @@ int main() {
 
   printf("char x[3]; char y[3]; int char_test1() { x[0] = y[1]; return 0; }");
   assert(0, char_test1());
-  // printf("char x[3]; int char_test2() { x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }"); // 3 expected, but got 4294967299
-  // assert(3, char_test2());
-  // printf("int char_test3() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0] + y; }");
-  // assert(3, char_test3());
-  printf("char x[3]; int char_test4() { x[0] = -1; return x[1] == 0; }");
-  assert(1, char_test4());
-  printf("int char_test5() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }");
-  assert(2, char_test5());
+  printf("int char_test2() { char x[3]; x[0] = -1; x[1] = 2; return x[0]; }");
+  assert(-1, char_test2());
+  printf("char x[3]; int char_test3() { x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }");
+  assert(3, char_test3());
+  printf("int char_test4() { char x[3]; x[1] = 2; x[0] = -1; int y; y = 4; return x[0] + y; }");
+  assert(3, char_test4());
+  printf("char x[3]; int char_test5() { x[0] = -1; return x[1] == 0; }");
+  assert(1, char_test5());
+  printf("int char_test6() { char x[3]; x[0] = -1; return &x[2]-&x[0]; }");
+  assert(2, char_test6());
 
-  // printf("int string_literal_test1() { char *x = "abc"; return x[0]; }"); // \"に対応していないので字句解析できない
-  printf("int string_literal_test1() { char *x = 'abc'; return x[0]; }");
+  printf("int string_literal_test1() { char *x = \"abc\"; return x[0]; }");
   assert(97, string_literal_test1());
-  // printf("int string_literal_test2() { return "ABC"[0]; }");
-  printf("int string_literal_test2() { return 'ABC'[0]; }");
+  printf("int string_literal_test2() { return \"ABC\"[0]; }");
   assert(65, string_literal_test2());
-  // printf("int string_literal_test3() { return 1["ABC"]; }");
-  printf("int string_literal_test3() { return 1['ABC']; }");
+  printf("int string_literal_test3() { return 1[\"ABC\"]; }");
   assert(66, string_literal_test3());
-  // printf("int string_literal_test4() { return *"abc"; }");
-  printf("int string_literal_test4() { return *'abc'; }");
+  printf("int string_literal_test4() { return *\"abc\"; }");
   assert(97, string_literal_test4());
-  // printf("int string_literal_test5() { char *x; x = "abc"; return x[2]-x[0]; }");
-  printf("int string_literal_test5() { char *x; x = 'abc'; return x[2]-x[0]; }");
+  printf("int string_literal_test5() { char *x; x = \"abc\"; return x[2]-x[0]; }");
   assert(2, string_literal_test5());
-  // printf("int string_literal_test6() { return sizeof("abcdefg"); }");
-  printf("int string_literal_test6() { return sizeof('abcdefg'); }");
+  printf("int string_literal_test6() { return sizeof(\"abcdefg\"); }");
   assert(8, string_literal_test6());
 
   printf("int comment_test1() {\n  int //b=256876;\n  a = 5;\n  return a;\n}");
@@ -426,15 +423,13 @@ int main() {
   assert(1, logical_op2());
   printf("int logical_op3() { return 0||1; }");
   assert(1, logical_op3());
-  // printf("int logical_op4() { return 99||ret16(); } int ret16() { printf(\"呼び出さないはず\n\"); return 16; }"); // \"に対応していないので字句解析できない
-  printf("int logical_op4() { return 99||ret16(); } int ret16() { return 16; }");
+  printf("int logical_op4() { return 99||ret16(); } int ret16() { printf(\"呼び出さないはず\\n\"); return 16; }");
   assert(1, logical_op4());
   printf("int logical_op5() { return 0&&0; }");
   assert(0, logical_op5());
   printf("int logical_op6() { return 7&&0; }");
   assert(0, logical_op6());
-  // printf("int logical_op7() { return 0&&ret8(); } int ret8() { printf(\"呼び出さないはず\n\"); return 8; }");
-  printf("int logical_op7() { return 0&&ret8(); } int ret8() { return 8; }");
+  printf("int logical_op7() { return 0&&ret8(); } int ret8() { printf(\"呼び出さないはず\\n\"); return 8; }");
   assert(0, logical_op7());
   printf("int logical_op8() { return 99&&ret3(); }");
   assert(1, logical_op8());

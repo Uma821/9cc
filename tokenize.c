@@ -148,6 +148,9 @@ static bool startswith(char *p, char *q) {
 static bool isdoublequote(char c) {
   return c == '"';
 }
+static bool isescapedoublequote(char *p) {
+  return startswith(p, "\\\"");
+}
 
 // cが識別子の最初の文字として有効な場合、trueを返す
 static bool is_ident1(char c) {
@@ -231,7 +234,7 @@ void tokenize() {
       char *start = p;
       do {
         p++;
-      } while (!isdoublequote(*p));
+      } while (!(isdoublequote(*p)&&!isescapedoublequote(p-1))); // エスケープされた"じゃなければ文字列リテラル終了
       ++p;
       cur = new_token(TK_STR, cur, start, p-start);
       continue;

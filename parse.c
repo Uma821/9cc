@@ -454,8 +454,16 @@ static Node *new_add(Node *lhs, Node *rhs) {
   add_type(rhs);
 
   // num + num
-  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+  if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+    // lhsの型がadd計算後の型になる
+    // char + int を int + char にひっくり返す
+    if (lhs->ty->kind == TY_CHAR && rhs->ty->kind == TY_INT) {
+      Node *tmp = lhs;
+      lhs = rhs;
+      rhs = tmp;
+    }
     return new_node(ND_ADD, lhs, rhs);
+  }
 
   // 配列に対するaddは先頭要素のアドレスに降格
   decay_arr(lhs); // 配列ならポインタに降格
@@ -483,8 +491,12 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   add_type(rhs);
 
   // num - num
-  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+  if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+    // char - int を -int + char にする.
+    if (lhs->ty->kind == TY_CHAR && rhs->ty->kind == TY_INT)
+      return new_add(new_node(ND_SUB, new_node_num(0), rhs), lhs);
     return new_node(ND_SUB, lhs, rhs);
+  }
 
   // 配列に対するsubは先頭要素のアドレスに降格
   decay_arr(lhs); // 配列ならポインタに降格
