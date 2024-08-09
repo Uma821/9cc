@@ -202,7 +202,7 @@ static Type *function_declarator(Type *ty) { // 関数宣言子
   return ty;
 }
 
-// declaration = decl_basictype (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+// declaration = decl_basictype (declarator ("=" (assign | ("{" assign ("," assign)* "}")))? ("," declarator ("=" (assign | ("{" assign ("," assign)* "}")))?)*)? ";"
 static Node *declaration() {
   Type *basety = decl_basictype();
 
