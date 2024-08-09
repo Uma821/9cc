@@ -142,6 +142,7 @@ static Node *logor();
 static Node *logand();
 static Node *equality();
 static Node *relational();
+static Node *new_add(Node *, Node *);
 static Node *add();
 static Node *mul();
 static Node *unary();
@@ -215,10 +216,46 @@ static Node *declaration() {
     LVar *lvar = new_lvar(ty->name, ty);
 
     if (consume("=")) {
-      Node *lhs = new_node_lvar(lvar, ty->tok);
-      Node *rhs = assign();
-      decay_arr(rhs); // 右辺が配列ならポインタに降格
-      cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
+      if (lvar->ty->kind == TY_ARRAY) { // 配列に対する初期化
+        if (consume("{")) { // 初期化子リスト
+          int param_cnt = 0;
+          Node *lhs = new_node_lvar(lvar, ty->tok);
+
+          while (!consume("}")) {
+            Node *rhs = assign();
+            decay_arr(rhs); // 右辺が配列ならポインタに降格
+            cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), rhs);
+            ++param_cnt;
+            consume(",");
+          }
+          while (param_cnt<lvar->ty->array_size) { // 残りの要素は0で初期化
+            cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), new_node_num(0));
+            ++param_cnt;
+          }
+        } else { // 文字列リテラル
+          Token *tok = consume_str();
+          if (tok) {
+            int param_cnt = 0;
+            Node *lhs = new_node_lvar(lvar, ty->tok);
+
+            for(char *ptr = tok->str+1;param_cnt<tok->len-2;++ptr) {
+              cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), new_node_num(*ptr));
+              ++param_cnt;
+            }
+            while (param_cnt<lvar->ty->array_size) { // 残りの要素は0で初期化
+              cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), new_node_num(0));
+              ++param_cnt;
+            }
+          } else {
+            error_at(token->str, "不明な初期化式");
+          }
+        }
+      } else { // 配列以外
+        Node *lhs = new_node_lvar(lvar, ty->tok);
+        Node *rhs = assign();
+        decay_arr(rhs); // 右辺が配列ならポインタに降格
+        cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
+      }
     }
 
     consume(",");

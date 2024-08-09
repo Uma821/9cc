@@ -169,6 +169,13 @@ int grobal_var_init_b[3] = {0, 1, 2}; int grobal_var_init3() { return grobal_var
 int grobal_var_init_c[5] = {0, 1, 2}; int grobal_var_init4() { return grobal_var_init_c[0]+grobal_var_init_c[1]+grobal_var_init_c[2]+grobal_var_init_c[3]+grobal_var_init_c[4]; }
 char grobal_var_init_d[7] = "foobar"; int grobal_var_init5() { return grobal_var_init_d[0]+grobal_var_init_d[1]+grobal_var_init_d[2]+grobal_var_init_d[3]+grobal_var_init_d[4]+grobal_var_init_d[5]+grobal_var_init_d[6]; }
 char grobal_var_init_e[7] = "piyo"; int grobal_var_init6() { return grobal_var_init_e[4]+grobal_var_init_e[5]+grobal_var_init_e[6]; }
+char grobal_var_init_f[10] = "abcdefg"; int grobal_var_init7() { return sizeof(grobal_var_init_f); }
+
+int lvar_array_init1() { int a[2] = {1, 2}; int *p; p = a; return *p + *(p + 1); }
+int lvar_array_init2() { int c[5] = {0, 1, 2}; return c[0]+c[1]+c[2]+c[3]+c[4]; }
+int lvar_array_init3() { char d[7] = "foobar"; return d[0]+d[1]+d[2]+d[3]+d[4]+d[5]+d[6]; }
+int lvar_array_init4() { char e[7] = "piyo"; return e[4]+e[5]+e[6]; }
+int lvar_array_init5() { char f[10] = "abcdefg"; return sizeof(f); }
 
 int main() {
 
@@ -441,4 +448,17 @@ int main() {
   assert(633, grobal_var_init5());
   printf("char e[7] = \"piyo\"; int grobal_var_init6() { return e[4]+e[5]+e[6]; }");
   assert(0, grobal_var_init6());
+  printf("char f[10] = \"abcdefg\"; int grobal_var_init7() { return sizeof(f); }");
+  assert(10, grobal_var_init7());
+
+  printf("int lvar_array_init1() { int a[2] = {1, 2}; int *p = a; return *p + *(p + 1); }");
+  assert(3, lvar_array_init1());
+  printf("int lvar_array_init2() { int c[5] = {0, 1, 2}; return c[0]+c[1]+c[2]+c[3]+c[4]; }");
+  assert(3, lvar_array_init2());
+  printf("int lvar_array_init3() { char d[7] = \"foobar\"; return d[0]+d[1]+d[2]+d[3]+d[4]+d[5]+d[6]; }");
+  assert(633, lvar_array_init3());
+  printf("int lvar_array_init4() { char e[7] = \"piyo\"; return e[4]+e[5]+e[6]; }");
+  assert(0, lvar_array_init4());
+  printf("int lvar_array_init5() { char f[10] = \"abcdefg\"; return sizeof(f); }");
+  assert(10, lvar_array_init5());
 }
