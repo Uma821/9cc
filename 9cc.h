@@ -79,7 +79,7 @@ struct GVar {
   char *name; // 変数の名前
   Type *ty;   // Type
   int len;    // 名前の長さ
-  // int offset; // RBPからのオフセット
+  Node *init; // 初期化式
 };
 
 // グローバル変数
@@ -164,7 +164,6 @@ struct Function {
 typedef struct Program Program;
 struct Program {
   Function *funcs;
-  Node *gvar_declarations;
 };
 
 Program *parse();

@@ -228,12 +228,9 @@ static Node *declaration() {
   node->body = head.next;
   return node;
 }
-// gvar_declaration = decl_basictype (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-static Node *gvar_declaration() {
+// gvar_declaration = decl_basictype (declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))? ("," declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))?)*)? ";"
+static bool gvar_declaration() {
   Type *basety = decl_basictype();
-
-  Node head = {};
-  Node *cur = &head;
 
   while (!consume(";")) {
     Type *ty = declarator(basety);
@@ -242,18 +239,66 @@ static Node *gvar_declaration() {
     GVar *gvar = new_gvar(ty->name, ty);
 
     if (consume("=")) {
-      Node *lhs = new_node_gvar(gvar, ty->tok);
-      Node *rhs = assign();
-      decay_arr(rhs); // 右辺が配列ならポインタに降格
-      cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
+      if (gvar->ty->kind == TY_ARRAY) { // 配列に対する初期化
+        if (consume("{")) { // 初期化子リスト
+          Node head = {};
+          Node *cur = &head;
+          int param_cnt = 0;
+
+          while (!consume("}")) {
+            cur = cur->next = new_node_num(expect_number());
+            ++param_cnt;
+            consume(",");
+          }
+          while (param_cnt<gvar->ty->array_size) { // 残りの要素は0で初期化
+            cur = cur->next = new_node_num(0);
+            ++param_cnt;
+          }
+          Node *node = new_node(ND_BLOCK, NULL, NULL);
+          node->body = head.next;
+          add_type(node);
+          gvar->init = node;
+        } else { // 文字列リテラル
+          Token *tok = consume_str();
+          if (tok) {
+            Node head = {};
+            Node *cur = &head;
+
+            Str *string = new_str(tok);
+            cur = cur->next = new_node_str(string, tok);
+            int param_cnt = string->ty->array_size;
+
+            while (param_cnt<gvar->ty->array_size) { // 残りの要素は0で初期化
+              cur = cur->next = new_node_num(0);
+              ++param_cnt;
+            }
+            Node *node = new_node(ND_BLOCK, NULL, NULL);
+            node->body = head.next;
+            add_type(node);
+            gvar->init = node;
+          } else {
+            error_at(token->str, "不明な初期化式");
+          }
+        }
+      } else { // 配列以外
+        Token *tok = consume_str();
+        if (tok) {
+          Str *string = new_str(tok);
+          Node *node  = new_node_str(string, tok);
+
+          decay_arr(node); // 右辺が配列ならポインタに降格
+          add_type(node);
+          gvar->init = node;
+        } else {
+          gvar->init = new_node_num(expect_number());
+        }
+      }
     }
 
     consume(",");
   }
 
-  Node *node = new_node(ND_BLOCK, NULL, NULL);
-  node->body = head.next;
-  return node;
+  return true;
 }
 
 static void create_param_lvars(Type *param) {
@@ -268,15 +313,10 @@ Program *parse() {
   Program *prog = calloc(1, sizeof(Program));
   Function func_head = {};
   Function *func_cur = &func_head;
-  Node gvar_head = {};
-  Node *gvar_cur = &gvar_head;
 
   while (!at_eof()) {
     Token *origin = token; // 解析失敗時はトークンを元に戻す
-    Node *globalvar = gvar_declaration();
-    if (globalvar) { // グローバル変数宣言として読むことができるか
-      globalvar->kind = ND_GVAR;
-      gvar_cur = gvar_cur->next = globalvar;
+    if (gvar_declaration()) { // グローバル変数宣言として読むことができるか
       continue;
     }
     token = origin;
@@ -285,7 +325,6 @@ Program *parse() {
     //error("正しくパースできませんでした。");
 
   prog->funcs = func_head.next;
-  prog->gvar_declarations = gvar_head.next;
   return prog;
 }
 

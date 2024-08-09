@@ -281,7 +281,43 @@ void codegen(Program *prog) {
   for (GVar *gvar = globals; gvar; gvar = gvar->next) {
     // グローバル変数を定義
     printf("%s:\n", gvar->name);
-    printf("  .zero %d\n", gvar->ty->size);
+    Node *gvar_init = gvar->init;
+    if (gvar_init) {
+      if (gvar_init->kind == ND_BLOCK) { // 配列
+        for (Node *n = gvar_init->body; n; n = n->next) {
+          if (n->kind == ND_STR && n->ty->kind == TY_ARRAY) { // 文字列リテラル
+            printf("  .string %s\n", n->string->literal);
+            continue;
+          }
+
+          if (gvar->ty->elem->kind == TY_INT)
+            printf("  .quad "); // 8バイト
+          else if (gvar->ty->elem->kind == TY_CHAR)
+            printf("  .byte ");
+          else if (gvar->ty->elem->kind == TY_PTR)
+            printf("  .quad ");
+
+          if (n->kind == ND_NUM)
+            printf("%d\n", n->val);
+          else if (n->kind == ND_STR)
+            printf(".LC%d\n", n->string->num);
+        }
+      } else { // 配列以外の初期化
+        if (gvar->ty->kind == TY_INT)
+          printf("  .quad "); // 8バイト
+        else if (gvar->ty->kind == TY_CHAR)
+          printf("  .byte ");
+        else if (gvar->ty->kind == TY_PTR)
+          printf("  .quad ");
+
+        if (gvar_init->kind == ND_NUM)
+          printf("%d\n", gvar_init->val);
+        else if (gvar_init->kind == ND_STR)
+          printf(".LC%d\n", gvar_init->string->num);
+      }
+    } else {
+      printf("  .zero %d\n", gvar->ty->size);
+    }
   }
   for (Str *str = strings; str; str = str->next) {
     // 文字列リテラルを配置

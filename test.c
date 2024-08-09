@@ -3,7 +3,7 @@ int assert(int expected, int actual) {
     printf(" => %ld\n", actual);
     return 0;
   }
-  printf(" => %ld(%lx) expected, but got %ld(%lx)\n", expected, expected, actual, actual);
+  printf(" => %ld(0x%lx) expected, but got %ld(0x%lx)\n", expected, expected, actual, actual);
   exit(1);
 }
 
@@ -117,17 +117,12 @@ int array_test8() { int x[3]; x[1]=5; *(x-(-2))=7; return (x+2) - x; }
 int array_test9() { int x[10], y[2]; return y - x; }
 int array_test10() { int x[10], *y; *x=13; y=&x[0]+4; *y=*(x+6)=3; return y[-4] + x[4] + y[2]; }
 
-int gvar_pre_a; int gvar_pre1() { return 0; }
-int *gvar_pre_b; int gvar_pre2(){ if (1) return 2; return 3; }
-int gvar_pre_hoge[10]; int gvar_pre3() { int i=0; while(i<10) i=i+1; return i; }
-int *gvar_pre_piyo[10]; int gvar_pre4() { int *x; return sizeof(x); }
-
-int gvar_test1_a; int gvar_test1() { gvar_test1_a=1; return gvar_test1_a; }
-int gvar_test2_fuga[5]; int gvar_test2() { int i=0; return gvar_test2_fuga[4]; }
-int gvar_test3_fuga[5]; int gvar_test3() { int i=0; while(i<5) { gvar_test3_fuga[i]=i+1; i=i+1; } return gvar_test3_fuga[4]; }
-int gvar_test4_fuga[10]; int gvar_test4() { int i=1; while(i<10) { gvar_test4_fuga[i]=2*gvar_test4_fuga[i-1]+1; i=i+1; } return gvar_test4_fuga[4]; }
-int *gvar_test5_foo; int gvar_test5() { int x[2]; *x=-6; gvar_test5_foo=x+1; *gvar_test5_foo=x[0]+3; return gvar_test5_foo[0] - gvar_test5_foo[-1] + x[1]; }
-int *gvar_test6_foo; int gvar_test6() { int x[2]; *x=-6; gvar_test6_foo=x+1; *gvar_test6_foo=x[0]+3; return - gvar_test6_foo[0] - gvar_test6_foo[-1] + x[1]; }
+int gvar_test_a; int gvar_test1() { gvar_test_a=1; return gvar_test_a; }
+int gvar_test_fuga[5]; int gvar_test2() { int i=0; return gvar_test_fuga[4]; }
+int gvar_test_hoge[5]; int gvar_test3() { int i=0; while(i<5) { gvar_test_hoge[i]=i+1; i=i+1; } return gvar_test_hoge[4]; }
+int gvar_test_piyo[10]; int gvar_test4() { int i=1; while(i<10) { gvar_test_piyo[i]=2*gvar_test_piyo[i-1]+1; i=i+1; } return gvar_test_piyo[4]; }
+int *gvar_test_foo; int gvar_test5() { int x[2]; *x=-6; gvar_test_foo=x+1; *gvar_test_foo=x[0]+3; return gvar_test_foo[0] - gvar_test_foo[-1] + x[1]; }
+int *gvar_test_bar; int gvar_test6() { int x[2]; *x=-6; gvar_test_bar=x+1; *gvar_test_bar=x[0]+3; return - gvar_test_bar[0] - gvar_test_bar[-1] + x[1]; }
 
 char char_test_x[3]; char char_test_y[3]; int char_test1() { char_test_x[0] = char_test_y[1]; return 0; }
 int char_test2() { char x[3]; x[0] = -1; x[1] = 2; return x[0]; }
@@ -167,6 +162,13 @@ int logical_op6() { return 7&&0; }
 int logical_op7() { return 0&&ret8(); } int ret8() { printf("呼び出さないはず\n"); return 8; }
 int logical_op8() { return 99&&ret3(); }
 int logical_op9() { int a=ret0(); return a || (3 && ret5()); } int ret0() { return 0; }
+
+int grobal_var_init_a=1; int grobal_var_init1() { return grobal_var_init_a; }
+char *grobal_var_init_x = "abc"; int grobal_var_init2() { return grobal_var_init_x[0]; }
+int grobal_var_init_b[3] = {0, 1, 2}; int grobal_var_init3() { return grobal_var_init_b[0]+grobal_var_init_b[1]+grobal_var_init_b[2]; }
+int grobal_var_init_c[5] = {0, 1, 2}; int grobal_var_init4() { return grobal_var_init_c[0]+grobal_var_init_c[1]+grobal_var_init_c[2]+grobal_var_init_c[3]+grobal_var_init_c[4]; }
+char grobal_var_init_d[7] = "foobar"; int grobal_var_init5() { return grobal_var_init_d[0]+grobal_var_init_d[1]+grobal_var_init_d[2]+grobal_var_init_d[3]+grobal_var_init_d[4]+grobal_var_init_d[5]+grobal_var_init_d[6]; }
+char grobal_var_init_e[7] = "piyo"; int grobal_var_init6() { return grobal_var_init_e[4]+grobal_var_init_e[5]+grobal_var_init_e[6]; }
 
 int main() {
 
@@ -362,26 +364,17 @@ int main() {
   printf("int array_test10() { int x[10], *y; *x=13; y=&x[0]+4; *y=*(x+6)=3; return y[-4] + x[4] + y[2]; }");
   assert(19, array_test10());
 
-  printf("int a; int gvar_pre1() { return 0; }");
-  assert(0, gvar_pre1());
-  printf("int *b; int gvar_pre2(){ if (1) return 2; return 3; }");
-  assert(2, gvar_pre2());
-  printf("int hoge[10]; int gvar_pre3() { int i=0; while(i<10) i=i+1; return i; }");
-  assert(10, gvar_pre3());
-  printf("int *piyo[10]; int gvar_pre4() { int *x; return sizeof(x); }");
-  assert(8, gvar_pre4());
-
   printf("int a; int gvar_test1() { a=1; return a; }");
   assert(1, gvar_test1());
   printf("int fuga[5]; int gvar_test2() { int i=0; return fuga[4]; }");
   assert(0, gvar_test2());
-  printf("int fuga[5]; int gvar_test3() { int i=0; while(i<5) { fuga[i]=i+1; i=i+1; } return fuga[4]; }");
+  printf("int hoge[5]; int gvar_test3() { int i=0; while(i<5) { hoge[i]=i+1; i=i+1; } return hoge[4]; }");
   assert(5, gvar_test3());
-  printf("int fuga[10]; int gvar_test4() { int i=1; while(i<10) { fuga[i]=2*fuga[i-1]+1; i=i+1; } return fuga[4]; }");
+  printf("int piyo[10]; int gvar_test4() { int i=1; while(i<10) { piyo[i]=2*piyo[i-1]+1; i=i+1; } return piyo[4]; }");
   assert(15, gvar_test4());
   printf("int *foo; int gvar_test5() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return foo[0] - foo[-1] + x[1]; }");
   assert(0, gvar_test5());
-  printf("int *foo; int gvar_test6() { int x[2]; *x=-6; foo=x+1; *foo=x[0]+3; return - foo[0] - foo[-1] + x[1]; }");
+  printf("int *bar; int gvar_test6() { int x[2]; *x=-6; bar=x+1; *bar=x[0]+3; return - bar[0] - bar[-1] + x[1]; }");
   assert(6, gvar_test6());
 
   printf("char x[3]; char y[3]; int char_test1() { x[0] = y[1]; return 0; }");
@@ -435,4 +428,17 @@ int main() {
   assert(1, logical_op8());
   printf("int logical_op9() { int a=ret0(); return a || (3 && ret5()); } int ret0() { return 0; }");
   assert(1, logical_op9());
+
+  printf("int a=1; int grobal_var_init1() { return a; }");
+  assert(1, grobal_var_init1());
+  printf("char *x = \"abc\"; int grobal_var_init2() { return x[0]; }");
+  assert(97, grobal_var_init2());
+  printf("int b[3] = {0, 1, 2}; int grobal_var_init3() { return b[0]+b[1]+b[2]; }");
+  assert(3, grobal_var_init3());
+  printf("int c[5] = {0, 1, 2}; int grobal_var_init4() { return c[0]+c[1]+c[2]+c[3]+c[4]; }");
+  assert(3, grobal_var_init4());
+  printf("char d[7] = \"foobar\"; int grobal_var_init5() { return d[0]+d[1]+d[2]+d[3]+d[4]+d[5]+d[6]; }");
+  assert(633, grobal_var_init5());
+  printf("char e[7] = \"piyo\"; int grobal_var_init6() { return e[4]+e[5]+e[6]; }");
+  assert(0, grobal_var_init6());
 }
