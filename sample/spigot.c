@@ -1,7 +1,7 @@
 // https://xn--w6q13e505b.jp/program/spigot.html
 
-int base;             // 基底
-int n;                // 計算項数
+int base = 10000;     // 基底
+int n = 8400;         // 計算項数
 int i;                // ループ変数
 int temp;             // 一時変数/繰り上がり
 int out;              // 出力値
@@ -9,8 +9,6 @@ int denom;            // 分母
 int numerator[8401];  // 分子
  
 int main() {
-  base = 10000;
-  n = 8400;
   for (i = 0; i < n; i=i+1) {
     numerator[i] = base / 5;
   }

@@ -224,7 +224,8 @@ static Node *declaration() {
           while (!consume("}")) {
             Node *rhs = assign();
             decay_arr(rhs); // 右辺が配列ならポインタに降格
-            cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), rhs);
+            if (param_cnt<lvar->ty->array_size) // 配列の要素数を超えた
+              cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), rhs);
             ++param_cnt;
             consume(",");
           }
@@ -238,7 +239,7 @@ static Node *declaration() {
             int param_cnt = 0;
             Node *lhs = new_node_lvar(lvar, ty->tok);
 
-            for(char *ptr = tok->str+1;param_cnt<tok->len-2;++ptr) {
+            for(char *ptr = tok->str+1;param_cnt<tok->len-2 && param_cnt<lvar->ty->array_size;++ptr) {
               cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), new_node_num(*ptr));
               ++param_cnt;
             }
@@ -283,7 +284,8 @@ static bool gvar_declaration() {
           int param_cnt = 0;
 
           while (!consume("}")) {
-            cur = cur->next = new_node_num(expect_number());
+            if (param_cnt<gvar->ty->array_size) // 配列の要素数を超えた
+              cur = cur->next = new_node_num(expect_number());
             ++param_cnt;
             consume(",");
           }
