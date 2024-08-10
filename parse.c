@@ -140,6 +140,11 @@ static Type *decl_basictype() {
   return new_type(TY_CHAR);
 }
 
+// equal_basictype = ("int" | "char")
+static bool equal_basictype() {
+  return equal_keyword("int") || equal_keyword("char");
+}
+
 static Type *declarator(Type *ty);
 Program *parse();
 static Function *function();
@@ -195,6 +200,22 @@ static Type *declarator(Type *ty) { // 宣言子
   }
   
   ty->name = name;
+  ty->tok = tok_lval;
+  return ty;
+}
+// declarator_except_ident = "*" * ( "[" number "]" )?
+static Type *declarator_except_ident(Type *ty) { // 識別子を覗いた宣言子
+  while (consume("*"))
+    ty = pointer_to(ty);
+
+  Token *tok_lval = token;
+  if (consume("(")) // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
+    return NULL;
+  if (consume("[")) {
+    ty = array_of(ty, expect_number());
+    expect("]");
+  }
+
   ty->tok = tok_lval;
   return ty;
 }
@@ -410,7 +431,7 @@ static Node *stmt() {
     head.next = NULL;
     Node *cur = &head;
     while (!consume("}")) {
-      if (equal_keyword("int") || equal_keyword("char"))
+      if (equal_basictype())
         cur = cur->next = declaration();
       else
         cur = cur->next = stmt();
@@ -801,6 +822,15 @@ static Node *primary() {
   }
 
   if (consume_keyword("sizeof")) {
+    Token *origin = token; // 解析失敗時はトークンを元に戻す
+    if (consume("(") && equal_basictype()) {
+      Type *basety = decl_basictype();
+      Type *ty = declarator_except_ident(basety);
+      expect(")");
+      return new_node_num(ty->size);
+    }
+
+    token = origin;
     Node *node = unary();
     add_type(node);
     return new_node_num(node->ty->size);

@@ -19,8 +19,8 @@ int main() {
   int cosATimes10000 = 10000; int sinATimes10000 = 0;
   int cosBTimes10000 = 10000; int sinBTimes10000 = 0;
   for (;;) {
-    memset(b, 32, 1760 * sizeof(*b));
-    memset(zTimes10000, 0, 1760 * sizeof(*zTimes10000));
+    memset(b, 32, 1760 * sizeof(char));
+    memset(zTimes10000, 0, 1760 * sizeof(int));
     int sinthetaTimes10000 = 0; int costhetaTimes10000 = 10000;
     int theta_times_14;
     for (theta_times_14 = 0; theta_times_14 < 88; ){

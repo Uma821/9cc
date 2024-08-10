@@ -105,6 +105,12 @@ int sizeof_test2() { int x; return sizeof x; }
 int sizeof_test3() { int *x; return sizeof(x); }
 int sizeof_test4() { int x=1; return sizeof(x=2); }
 int sizeof_test5() { int x=1; sizeof(x=2); return x; }
+int sizeof_test6() { int a; return sizeof(int); }
+int sizeof_test7() { return sizeof(int*); }
+int sizeof_test8() { int a; return sizeof(char[2]); }
+int sizeof_test9() { return sizeof(int[5]); }
+int sizeof_test10() { return sizeof(int*[5]); }
+int sizeof_test11() { return sizeof(char*[10]); }
 
 int array_test1() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }
 int array_test2() { int x[5], *y; *x=4; *(x+4)=8; y=x; return *y + *(y+4); }
@@ -370,6 +376,18 @@ int main() {
   assert(8, sizeof_test4());
   printf("int sizeof_test5() { int x=1; sizeof(x=2); return x; }");
   assert(1, sizeof_test5());
+  printf("int sizeof_test6() { int a; return sizeof(int); }");
+  assert(8, sizeof_test6());
+  printf("int sizeof_test7() { return sizeof(int*); }");
+  assert(8, sizeof_test7());
+  printf("int sizeof_test8() { int a; return sizeof(char[2]); }");
+  assert(2, sizeof_test8());
+  printf("int sizeof_test9() { return sizeof(int[5]); }");
+  assert(40, sizeof_test9());
+  printf("int sizeof_test10() { return sizeof(int*[5]); }");
+  assert(40, sizeof_test10());
+  printf("int sizeof_test11() { return sizeof(char*[10]); }");
+  assert(80, sizeof_test11());
 
   printf("int array_test1() { int a[2]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }");
   assert(3, array_test1());
