@@ -420,7 +420,7 @@ static Function *function() { // Function definition
 // stmt = expr? ";"
 //      | "{" (declaration | stmt)* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
-//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "for" "(" (declaration | stmt) expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
 static Node *stmt() {
@@ -453,7 +453,10 @@ static Node *stmt() {
   } else if (consume_keyword("for")) {
     node = new_node(ND_LOOP, NULL, NULL);
     expect("(");
-    node->init = stmt(); // ";"の部分も含めてstmt
+    if (equal_basictype())
+      node->init = declaration(); // 初期化式で変数定義
+    else
+      node->init = stmt(); // ";"の部分も含めてstmt
     if (!consume(";")) {
       node->cond = expr();
       expect(";");

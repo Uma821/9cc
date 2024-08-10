@@ -68,6 +68,7 @@ int if_test7(){ if (1) { 1; 2; return 3; } else { return 4; } }
 int loop_test1() { int i=0; int j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }
 int loop_test2() { for (;;) return 3; return 5; }
 int loop_test3() { int i=0; while(i<10) i=i+1; return i; }
+int loop_test4() { int j=0; for (int i=0; i<=10; ++i) j=i+j; return j; }
 
 int ptr_test1() { int x=3; return *&x; }
 int ptr_test2() { int x=3; int *y=&x; int **z=&y; return **z; }
@@ -318,6 +319,8 @@ int main() {
   assert(3, loop_test2());
   printf("int loop_test3() { int i=0; while(i<10) i=i+1; return i; }");
   assert(10, loop_test3());
+  printf("int loop_test4() { int j=0; for (int i=0; i<=10; ++i) j=i+j; return j; }");
+  assert(55, loop_test4());
 
   printf("int ptr_test1() { int x=3; return *&x; }");
   assert(3, ptr_test1());

@@ -22,11 +22,9 @@ int main() {
     memset(b, 32, 1760 * sizeof(char));
     memset(zTimes10000, 0, 1760 * sizeof(int));
     int sinthetaTimes10000 = 0; int costhetaTimes10000 = 10000;
-    int theta_times_14;
-    for (theta_times_14 = 0; theta_times_14 < 88; ){
+    for (int theta_times_14 = 0; theta_times_14 < 88; ){
       int sinphiTimes10000 = 0; int cosphiTimes10000 = 10000;
-      int phi_times_50;
-      for (phi_times_50 = 0; phi_times_50 < 314; ) {
+      for (int phi_times_50 = 0; phi_times_50 < 314; ) {
         int hTimes10000 = costhetaTimes10000 + 20000;
         int DTimes10000 = 100000000 / (
           mul(mul(sinphiTimes10000, hTimes10000), sinATimes10000) 
