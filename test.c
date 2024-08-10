@@ -177,6 +177,18 @@ int lvar_array_init3() { char d[7] = "foobar"; return d[0]+d[1]+d[2]+d[3]+d[4]+d
 int lvar_array_init4() { char e[7] = "piyo"; return e[4]+e[5]+e[6]; }
 int lvar_array_init5() { char f[10] = "abcdefg"; return sizeof(f); }
 
+int compound_assign1() { int a=1, b=2; a += b; return a; }
+int compound_assign2() { int a=2, b=1; a -= b; return a; }
+int compound_assign3() { int a=2, b=3; a *= b; return a; }
+int compound_assign4() { int a=10, b=4; a /= b; return a; }
+int compound_assign5() { int a=10, b=3; a %= b; return a; }
+int compound_assign6() { int a[2] = {1, 2}; int *p=a; p+=1; return *p; }
+int compound_assign7() { char d[7] = "foobar"; char *p=d+1,*q; q=&p[0]+3;q+=1; return *q; }
+int compound_assign8() { int a[2] = {1, 2}; int *p=a+1; p-=1; return p[0]; }
+int compound_assign9() { char d[7] = "foobar"; char *p=d+1,*q; q=&p[0]-1;q-=-2; return *q; }
+// int compound_assign10() { int a[3] = {0, 1, 2}; int *p=&a[2]; p-=a; return p; }
+// int compound_assign11() { char d[7] = "foobar"; char *p=d+8; p-=d; return p; }
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -461,4 +473,27 @@ int main() {
   assert(0, lvar_array_init4());
   printf("int lvar_array_init5() { char f[10] = \"abcdefg\"; return sizeof(f); }");
   assert(10, lvar_array_init5());
+
+  printf("int compound_assign1() { int a=1, b=2; a += b; return a; }");
+  assert(3, compound_assign1());
+  printf("int compound_assign2() { int a=2, b=1; a -= b; return a; }");
+  assert(1, compound_assign2());
+  printf("int compound_assign3() { int a=2, b=3; a *= b; return a; }");
+  assert(6, compound_assign3());
+  printf("int compound_assign4() { int a=10, b=4; a /= b; return a; }");
+  assert(2, compound_assign4());
+  printf("int compound_assign5() { int a=10, b=3; a %= b; return a; }");
+  assert(1, compound_assign5());
+  printf("int compound_assign6() { int a[2] = {1, 2}; int *p=a; p+=1; return p; }");
+  assert(2, compound_assign6());
+  printf("int compound_assign7() { char d[7] = \"foobar\"; char *p=d+1,*q; q=&p[0]+3;q+=1; return *q; }");
+  assert(114, compound_assign7());
+  printf("int compound_assign8() { int a[2] = {1, 2}; int *p=a+1; p-=1; return p[0]; }");
+  assert(1, compound_assign8());
+  printf("int compound_assign9() { char d[7] = \"foobar\"; char *p=d+1,*q; q=&p[0]-1;q-=-2; return *q; }");
+  assert(111, compound_assign9());
+  // printf("int compound_assign10() { int a[3] = {0, 1, 2}; int *p=&a[2]; p-=a; return p; }");
+  // assert(2, compound_assign10());
+  // printf("int compound_assign11() { char d[7] = \"foobar\"; char *p=d+8; p-=d; return p; }");
+  // assert(8, compound_assign11());
 }

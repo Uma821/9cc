@@ -49,14 +49,14 @@ int main() {
           else
           b[o] = ".,-~:;=!*#$@"[0];
         }
-        phi_times_50=phi_times_50+1;
+        phi_times_50 += 1;
         update2(&cosphiTimes10000, &sinphiTimes10000, 9998, 200);
       }
-      theta_times_14=theta_times_14+1;
+      theta_times_14 += 1;
       update2(&costhetaTimes10000, &sinthetaTimes10000, 9974 + theta_times_14 % 2, 714);
     }
     printf("%c[H", 27);
-    for (k = 0; 1761 > k; k=k+1)
+    for (k = 0; 1761 > k; k+=1)
       if (k % 80)
       putchar(b[k]);
       else

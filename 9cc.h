@@ -105,6 +105,11 @@ typedef enum {
   ND_DIV,     // /
   ND_REM,     // %
   ND_ASSIGN,  // =
+  ND_ADDASGN, // +=
+  ND_SUBASGN, // -=
+  ND_MULASGN, // *=
+  ND_DIVASGN, // /=
+  ND_REMASGN, // %=
   ND_LOGOR,   // ||
   ND_LOGAND,  // &&
   ND_EQ,      // ==

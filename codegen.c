@@ -126,6 +126,136 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
+  case ND_ADDASGN:
+    gen_variable(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  push rax\n"); // アドレス保存
+
+    if(node->lhs->ty->kind == TY_CHAR)
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
+    else
+      printf("  mov rax, [rax]\n");
+
+    printf("  add rdi, rax\n");
+
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
+    return;
+  case ND_SUBASGN:
+    gen_variable(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  push rax\n"); // アドレス保存
+
+    if(node->lhs->ty->kind == TY_CHAR)
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
+    else
+      printf("  mov rax, [rax]\n");
+
+    printf("  sub rax, rdi\n");
+    printf("  mov rdi, rax\n");
+
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
+    return;
+  case ND_MULASGN:
+    gen_variable(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  push rax\n"); // アドレス保存
+
+    if(node->lhs->ty->kind == TY_CHAR)
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
+    else
+      printf("  mov rax, [rax]\n");
+
+    printf("  imul rdi, rax\n");
+
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
+    return;
+  case ND_DIVASGN:
+    gen_variable(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  push rax\n"); // アドレス保存
+
+    if(node->lhs->ty->kind == TY_CHAR)
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
+    else
+      printf("  mov rax, [rax]\n");
+
+    printf("  cqo\n"); // RAXに入っている64ビットの値を128ビットに伸ばしてRDXとRAXにセット
+    printf("  idiv rdi\n"); // 被除数は[RDX,RAX] (128)ビット整数とみなす
+    printf("  mov rdi, rax\n"); // 商はraxレジスタに格納される
+
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
+    return;
+  case ND_REMASGN:
+    gen_variable(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  push rax\n"); // アドレス保存
+
+    if(node->lhs->ty->kind == TY_CHAR)
+      printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
+    else
+      printf("  mov rax, [rax]\n");
+
+    printf("  cqo\n");
+    printf("  idiv rdi\n");
+    printf("  mov rdi, rdx\n"); // 剰余はrdxレジスタに格納される
+
+    if(node->lhs->ty->kind == TY_CHAR) {
+      printf("  pop rax\n");
+      printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
+      printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
+    } else {
+      printf("  pop rax\n");
+      printf("  mov [rax], rdi\n");
+      printf("  push rdi\n");
+    }
+    return;
   case ND_BLOCK:
     for (Node *n = node->body; n; n = n->next) {
       gen(n);

@@ -83,6 +83,14 @@ static void decay_arr(Node *node) {
     node->ty = arr_to_ptr(node->string->ty);
 }
 
+// static void integer_promotion(Node *lhs, Node *rhs) {
+//   // オペランドの型をintに揃える
+//   if(is_integer(lhs->ty))
+//     lhs->ty->kind = TY_INT;
+//   if(is_integer(rhs->ty))
+//     rhs->ty->kind = TY_INT;
+// }
+
 static LVar *new_lvar(char *name, Type *ty) {
   LVar *lvar = calloc(1, sizeof(LVar));
   lvar->name = name;
@@ -143,6 +151,8 @@ static Node *logand();
 static Node *equality();
 static Node *relational();
 static Node *new_add(Node *, Node *);
+static Node *new_add_asgn(Node *, Node *);
+static Node *new_sub_asgn(Node *, Node *);
 static Node *add();
 static Node *mul();
 static Node *unary();
@@ -457,13 +467,33 @@ static Node *expr() {
   return assign();
 }
 
-// assign = logor ("=" assign)?
+// assign = logor (("="|"+="|"-="|"*="|"/="|"%=") assign)?
 static Node *assign() {
   Node *node = logor();
   if (consume("=")) {
     Node *rhs = assign();
     decay_arr(rhs); // 右辺が配列ならポインタに降格
     node = new_node(ND_ASSIGN, node, rhs);
+  } else if (consume("+=")) {
+    Node *rhs = assign();
+    decay_arr(rhs);
+    node = new_add_asgn(node, rhs);
+  } else if (consume("-=")) {
+    Node *rhs = assign();
+    decay_arr(rhs);
+    node = new_sub_asgn(node, rhs);
+  } else if (consume("*=")) {
+    Node *rhs = assign();
+    decay_arr(rhs);
+    node = new_node(ND_MULASGN, node, rhs);
+  } else if (consume("/=")) {
+    Node *rhs = assign();
+    decay_arr(rhs);
+    node = new_node(ND_DIVASGN, node, rhs);
+  } else if (consume("%=")) {
+    Node *rhs = assign();
+    decay_arr(rhs);
+    node = new_node(ND_REMASGN, node, rhs);
   }
   return node;
 }
@@ -596,6 +626,78 @@ static Node *new_sub(Node *lhs, Node *rhs) {
     node->ty = new_type(TY_INT);
     return new_node(ND_DIV, node, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
   }
+
+  error_at(token->str, "無効な演算");
+  return NULL;
+}
+
+static Node *new_add_asgn(Node *lhs, Node *rhs) {
+  // if (!is_value(lhs))
+  //   error_at(token->str, "非左辺値への代入");
+  add_type(lhs);
+  add_type(rhs);
+
+  // num += num
+  if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+    // lhsの型がadd_assign計算後の型になる
+    return new_node(ND_ADDASGN, lhs, rhs);
+  }
+
+  // array += ? は計算できない
+  if (lhs->ty->kind == TY_ARRAY)
+    error_at(token->str, "無効な演算(array+=num)");
+
+  // 配列に対するaddは先頭要素のアドレスに降格
+  decay_arr(rhs);
+
+  // ptr += ptr は計算できない
+  if (lhs->ty->base && rhs->ty->base)
+    error_at(token->str, "無効な演算(pointer+pointer)");
+
+  // num += ptr
+  if (!lhs->ty->base && rhs->ty->base) {
+    lhs = new_node(ND_MUL, lhs, new_node_num(rhs->ty->base->size));
+    return new_node(ND_ADDASGN, lhs, rhs);
+  }
+
+  // ptr += num
+  rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
+  return new_node(ND_ADDASGN, lhs, rhs);
+}
+
+static Node *new_sub_asgn(Node *lhs, Node *rhs) {
+  add_type(lhs);
+  add_type(rhs);
+
+  // num -= num
+  if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+    // lhsの型がsub_assign計算後の型になる
+    return new_node(ND_SUBASGN, lhs, rhs);
+  }
+
+  // array -= ? は計算できない
+  if (lhs->ty->kind == TY_ARRAY)
+    error_at(token->str, "無効な演算(array-=num)");
+
+  // 配列に対するsubは先頭要素のアドレスに降格
+  decay_arr(rhs);
+
+  // ptr -= num
+  if (lhs->ty->base && is_integer(rhs->ty)) {
+    rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
+    add_type(rhs);
+    Node *node = new_node(ND_SUBASGN, lhs, rhs);
+    node->ty = lhs->ty;
+    return node;
+  }
+
+  // ptr -= ptr
+  // ptr - ptr は本来intのはずなので対応しない
+  // if (lhs->ty->base && rhs->ty->base) {
+  //   lhs = new_node(ND_DIVASGN, lhs, new_node_num(lhs->ty->base->size));
+  //   rhs = new_node(ND_DIV, rhs, new_node_num(rhs->ty->base->size));
+  //   return new_node(ND_SUBASGN, lhs, rhs); // lhsが2回評価される
+  // }
 
   error_at(token->str, "無効な演算");
   return NULL;
