@@ -66,6 +66,11 @@ void add_type(Node *node) {
   case ND_MUL:
   case ND_DIV:
   case ND_REM:
+  case ND_ADDASGN:
+  case ND_SUBASGN:
+  case ND_MULASGN:
+  case ND_DIVASGN:
+  case ND_REMASGN:
     node->ty = node->lhs->ty;
     return;
   case ND_ASSIGN:

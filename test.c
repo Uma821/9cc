@@ -189,6 +189,15 @@ int compound_assign9() { char d[7] = "foobar"; char *p=d+1,*q; q=&p[0]-1;q-=-2; 
 // int compound_assign10() { int a[3] = {0, 1, 2}; int *p=&a[2]; p-=a; return p; }
 // int compound_assign11() { char d[7] = "foobar"; char *p=d+8; p-=d; return p; }
 
+int incr_decr1() { int a=10; ++a; return a++; }
+int incr_decr2() { char a=10; ++a; return a++; }
+int incr_decr3() { int a[2], *b; b=a+5; return b++-a; }
+int incr_decr4() { char a[2], *b; b=a+5; return b++-a; }
+int incr_decr5() { int a=10; a++; return ++a; }
+int incr_decr6() { char a=10; a++; return ++a; }
+int incr_decr7() { int a[2], *b; b=a+5; return ++b-a; }
+int incr_decr8() { char a[2], *b; b=a+5; return ++b-a; }
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -496,4 +505,21 @@ int main() {
   // assert(2, compound_assign10());
   // printf("int compound_assign11() { char d[7] = \"foobar\"; char *p=d+8; p-=d; return p; }");
   // assert(8, compound_assign11());
+
+  printf("int incr_decr1() { int a=10; ++a; return a++; }");
+  assert(11, incr_decr1());
+  printf("int incr_decr2() { char a=10; ++a; return a++; }");
+  assert(11, incr_decr2());
+  printf("int incr_decr3() { int a[2], *b; b=a+5; return b++-a; }");
+  assert(5, incr_decr3());
+  printf("int incr_decr4() { char a[2], *b; b=a+5; return b++-a; }");
+  assert(5, incr_decr4());
+  printf("int incr_decr5() { int a=10; a++; return ++a; }");
+  assert(12, incr_decr5());
+  printf("int incr_decr6() { char a=10; a++; return ++a; }");
+  assert(12, incr_decr6());
+  printf("int incr_decr7() { int a[2], *b; b=a+5; return ++b-a; }");
+  assert(6, incr_decr7());
+  printf("int incr_decr8() { char a[2], *b; b=a+5; return ++b-a; }");
+  assert(6, incr_decr8());
 }

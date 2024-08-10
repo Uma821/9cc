@@ -735,11 +735,15 @@ static Node *mul() {
   }
 }
 
-// unary = ("+" | "-")? postfix
+// unary = ("++"|"--")? unary
+//       | ("+" | "-")? postfix
 //       | "*" unary
-//       | "&" unary 
-//       | postfix
+//       | "&" postfix
 static Node *unary() {
+  if (consume("++")) // 前置インクリメント
+    return new_add_asgn(unary(), new_node_num(1));
+  if (consume("--")) // 前置デクリメント
+    return new_sub_asgn(unary(), new_node_num(1));
   if (consume("+"))
     return postfix();
   if (consume("-"))
@@ -750,17 +754,23 @@ static Node *unary() {
     return new_node(ND_DEREF, node, NULL);
   }
   if (consume("&"))
-    return new_node(ND_ADDR, unary(), NULL);
+    return new_node(ND_ADDR, postfix(), NULL);
   return postfix();
 }
 
-// postfix = primary ("[" expr "]")*
+// postfix = primary ("[" expr "]")* ("++"|"--")?
 static Node *postfix() {
   Node *node = primary();
   while (consume("[")) {
     node = new_node(ND_DEREF, new_add(node, expr()), NULL);
     expect("]");
   }
+
+  if (consume("++")) // 後置インクリメント
+    return new_sub(new_add_asgn(node, new_node_num(1)), new_node_num(1));
+  if (consume("--")) // 後置デクリメント
+    return new_add(new_sub_asgn(node, new_node_num(1)), new_node_num(1));
+
   return node;
 }
 

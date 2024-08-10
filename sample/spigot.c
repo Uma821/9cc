@@ -9,14 +9,14 @@ int denom;            // 分母
 int numerator[8401];  // 分子
  
 int main() {
-  for (i = 0; i < n; i += 1) {
+  for (i = 0; i < n; i++) {
     numerator[i] = base / 5;
   }
  
   out = 0;
   for (n = 8400; n > 0; n -= 14) {
     temp = 0;
-    for (i = n - 1; i > 0; i -= 1) {
+    for (i = n - 1; i > 0; i--) {
       denom = 2 * i - 1;
       temp = temp * i + numerator[i] * base;
       numerator[i] = temp % denom;
