@@ -770,7 +770,7 @@ static Node *unary() {
   if (consume("--")) // 前置デクリメント
     return new_sub_asgn(unary(), new_node_num(1));
   if (consume("+"))
-    return postfix();
+    return new_node(ND_ADD, new_node_num(0), postfix());
   if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), postfix());
   if (consume("*")) {
