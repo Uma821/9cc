@@ -205,6 +205,18 @@ int incr_decr6() { char a=10; a++; return ++a; }
 int incr_decr7() { int a[2], *b; b=a+5; return ++b-a; }
 int incr_decr8() { char a[2], *b; b=a+5; return ++b-a; }
 
+int exclamation1() { return !0; }
+int exclamation2() { return !42; }
+int exclamation3() { return !(5+20-4); }
+int exclamation4() { return  !12 + 34 - 5 ; }
+int exclamation5() { return !5+6*7; }
+int exclamation6() { return 5*!(9-9); }
+int exclamation7() { return !(3+5)/2; }
+int exclamation8() { return !-10+20; }
+int exclamation9() { return !13%5; }
+int exclamation10() { int a=0; return !a; }
+int exclamation11() { char *x = "abc"; return x[!0]; }
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -543,4 +555,27 @@ int main() {
   assert(6, incr_decr7());
   printf("int incr_decr8() { char a[2], *b; b=a+5; return ++b-a; }");
   assert(6, incr_decr8());
+
+  printf("int exclamation1() { return !0; }");
+  assert(1, exclamation1());
+  printf("int exclamation2() { return !42; }");
+  assert(0, exclamation2());
+  printf("int exclamation3() { return !(5+20-4); }");
+  assert(0, exclamation3());
+  printf("int exclamation4() { return  !12 + 34 - 5 ; }");
+  assert(29, exclamation4());
+  printf("int exclamation5() { return !5+6*7; }");
+  assert(42, exclamation5());
+  printf("int exclamation6() { return 5*!(9-9); }");
+  assert(5, exclamation6());
+  printf("int exclamation7() { return !(3+5)/2; }");
+  assert(0, exclamation7());
+  printf("int exclamation8() { return !-10+20; }");
+  assert(20, exclamation8());
+  printf("int exclamation9() { return !13%5; }");
+  assert(0, exclamation9());
+  printf("int exclamation10() { int a=0; return !a; }");
+  assert(1, exclamation10());
+  printf("int exclamation11() { char *x = \"abc\"; return x[!0]; }");
+  assert(98, exclamation11());
 }

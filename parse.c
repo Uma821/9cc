@@ -763,6 +763,7 @@ static Node *mul() {
 //       | ("+" | "-")? postfix
 //       | "*" unary
 //       | "&" postfix
+//       | "!" unary
 static Node *unary() {
   if (consume("++")) // 前置インクリメント
     return new_add_asgn(unary(), new_node_num(1));
@@ -779,6 +780,8 @@ static Node *unary() {
   }
   if (consume("&"))
     return new_node(ND_ADDR, postfix(), NULL);
+  if (consume("!"))
+    return new_node(ND_EQ, new_node_num(0), unary()); // 0 == E
   return postfix();
 }
 
