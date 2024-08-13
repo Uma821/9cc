@@ -106,6 +106,7 @@ struct Struct {
 };
 // structのメンバ
 struct MStruct {
+  MStruct *next; // 次の構造体かNULL
   char *name;    // メンバの名前
   Type *ty;      // Type
   int len;       // 名前の長さ
@@ -222,7 +223,7 @@ struct Type {
   // 構造体
   char *tag_name;   // 構造体の名前
   int tag_len;      // 構造体の名前の長さ
-  MStruct *mem[50]; // メンバへのポインタ
+  MStruct *member;  // メンバへのポインタ
 };
 
 Type *new_type(TypeKind kind);

@@ -11,10 +11,20 @@ static int align_to(int n, int align) {
   return (n + align - 1) / align * align;
 }
 
-// static Struct *reverse_struct(Struct* _struct) {
-//   Struct *reversed = reverse_struct(_struct->next);
-//   reversed->next = NULL;
+// static Struct *reverse_struct(Struct* head) {
+//   Struct *prev = NULL;
+//   Struct *current = head;
+//   Struct *next = NULL;
 
+//   while (current != NULL) {
+//     next = current->next; // 次のノードを保存
+//     current->next = prev; // currentの次をprevに変更
+//     prev = current;       // prevをcurrentに移動
+//     current = next;       // currentを次のノードに移動
+//   }
+
+//   head = prev;
+//   return head;
 // }
 
 // 構造体のリストから指定したタグ名に合う構造体を見つける
@@ -29,9 +39,9 @@ static Type *find_struct(char *ident) {
 
 // 構造体のメンバ群から指定したメンバを探す
 static MStruct *find_member(Type *struct_ty, char *ident) {
-  for (MStruct **mem = struct_ty->mem; *mem; ++mem) {
-    if (!strncmp(ident, (*mem)->name, (*mem)->len))
-      return *mem;
+  for (MStruct *mem = struct_ty->member; mem; mem = mem->next) {
+    if (!strncmp(ident, mem->name, mem->len))
+      return mem;
   }
   error_at(token->str, "メンバが見つかりません");
   return NULL;
@@ -426,15 +436,13 @@ static void assign_struct_offsets(Struct *_struct) {
   int offset = 0;
   int struct_align = 0;
 
-  MStruct **member = _struct->decl->mem;
-  while (*member) {
-    if (!(*member)->ty->align)
-      error_at((*member)->ty->tok->str, "alignment is not defigned");
-    (*member)->offset = offset = align_to(offset, (*member)->ty->align);
-    if (struct_align < (*member)->ty->align)
-      struct_align = (*member)->ty->align;
-    offset += (*member)->ty->align;
-    ++member;
+  for(MStruct *member = _struct->decl->member; member; member = member->next) {
+    if (!member->ty->align)
+      error_at(member->ty->tok->str, "alignment is not defigned");
+    member->offset = offset = align_to(offset, member->ty->align);
+    if (struct_align < member->ty->align)
+      struct_align = member->ty->align;
+    offset += member->ty->align;
   }
 
   _struct->decl->align = struct_align;
@@ -448,14 +456,16 @@ static bool struct_declaration() {
   char *name = get_ident();
   Struct *_struct = new_struct(name);
   expect("{");
-  int pMember_cnt = 0;
+  MStruct head = {};
+  MStruct *cur = &head;
 
   while (!consume("}")) {
     Type *basety = decl_basictype();
     Type *ty = declarator(basety);
     expect(";");
-    _struct->decl->mem[pMember_cnt++] = new_mstruct(ty->name, ty);
+    cur = cur->next = new_mstruct(ty->name, ty);
   }
+  _struct->decl->member = head.next;
   _struct->next = Structs;
   Structs = _struct;
   assign_struct_offsets(_struct);

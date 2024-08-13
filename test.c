@@ -16,6 +16,9 @@ int ret_val6() { return 5*(9-6); }
 int ret_val7() { return (3+5)/2; }
 int ret_val8() { return -10+20; }
 int ret_val9() { return 13%5; }
+int ret_val10() { return (3-5)/2; }
+int ret_val11() { return 4*(6-9); }
+int ret_val12() { return (7-4)/-2; }
 
 int ret_eq1() { return 0==1; }
 int ret_eq2() { return 42==42; }
@@ -230,6 +233,9 @@ struct B {
   char mem4;
 };
 
+// int struct_test1() { struct A a; a.mem1 = 1; a.mem2 = 2; a.mem3 = 3; a.mem4 = 4; return a++; }
+// int struct_test2() { struct B b; b.mem1 = 1; b.mem2 = 2; b.mem3 = 3; b.mem4 = 4; return b++; }
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -250,6 +256,12 @@ int main() {
   assert(10, ret_val8());
   printf("int ret_val9() { return 13%5; }");
   assert(3, ret_val9());
+  printf("int ret_val10() { return (3-5)/2; }");
+  assert(-1, ret_val10());
+  printf("int ret_val11() { return 4*(6-9); }");
+  assert(-12, ret_val11());
+  printf("int ret_val12() { return (7-4)/-2; }");
+  assert(-1, ret_val12());
 
   printf("int ret_eq1() { return 0==1; }");
   assert(0, ret_eq1());
