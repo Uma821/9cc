@@ -99,15 +99,10 @@ extern Str *strings;
 
 typedef struct Struct Struct;
 typedef struct MStruct MStruct;
-// struct
+// structの線形リスト(実装はType内に)
 struct Struct {
-  Struct *next;     // 次の構造体かNULL
-  MStruct *mem[50]; // メンバへのポインタ
-  char *name;       // 構造体の名前
-  int len;          // 名前の長さ
-  int size;         // sizeof
-  int align;        // alignof
-  int offset;       // RBPからのオフセット
+  Struct *next;  // 次の構造体かNULL
+  Type *decl;    // 宣言
 };
 // structのメンバ
 struct MStruct {
@@ -206,6 +201,7 @@ typedef enum {
   TY_PTR,
   TY_ARRAY,
   TY_FUNC,
+  TY_STRUCT,
 } TypeKind;
 
 struct Type {
@@ -223,6 +219,10 @@ struct Type {
   Type *return_ty;
   Type *params;
   Type *next;
+  // 構造体
+  char *tag_name;   // 構造体の名前
+  int tag_len;      // 構造体の名前の長さ
+  MStruct *mem[50]; // メンバへのポインタ
 };
 
 Type *new_type(TypeKind kind);

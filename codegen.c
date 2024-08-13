@@ -402,24 +402,9 @@ static void assign_string_literal_num() {
     str->num = number++;
 }
 
-// 構造体にオフセット割り当て
-// static void assign_struct_offsets() {
-//   for (Struct *_struct = Structs; _struct; _struct = _struct->next){
-//     int offset = 0;
-
-//     MStruct *member = *_struct->mem;
-//     while (member) {
-//       member->offset = offset;
-//       offset += member->ty-> ;
-//       ++member;
-//     }
-//   }
-// }
-
 void codegen(Program *prog) {
   assign_lvar_offsets(prog->funcs);
   assign_string_literal_num();
-  // assign_struct_offsets();
   printf(".intel_syntax noprefix\n");
 
   printf(".data\n");

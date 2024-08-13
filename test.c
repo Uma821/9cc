@@ -145,10 +145,6 @@ int string_literal_test4() { return *"abc"; }
 int string_literal_test5() { char *x; x = "abc"; return x[2]-x[0]; }
 int string_literal_test6() { return sizeof("abcdefg"); }
 
-struct A {
-  int mem1;
-};
-
 int comment_test1() {
   int //b=256876;
   a = 5;
@@ -220,6 +216,13 @@ int exclamation8() { return !-10+20; }
 int exclamation9() { return !13%5; }
 int exclamation10() { int a=0; return !a; }
 int exclamation11() { char *x = "abc"; return x[!0]; }
+
+struct A {
+  char mem1;
+  int mem2;
+  int mem3;
+  char mem4;
+};
 
 int main() {
 
@@ -595,4 +598,6 @@ int main() {
   assert(1, _Alignof(char[5]));
   printf("_Alignof(char*)");
   assert(8, _Alignof(char*));
+  printf("_Alignof(struct A)");
+  assert(8, _Alignof(struct A));
 }

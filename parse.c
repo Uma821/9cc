@@ -5,6 +5,28 @@ GVar *globals;
 Str *strings;
 Struct *Structs;
 
+// 'n'を'align'の最も近い倍数に切り上げる。
+// align_to(5, 8) == 8, align_to(11, 8) == 16.
+static int align_to(int n, int align) {
+  return (n + align - 1) / align * align;
+}
+
+// static Struct *reverse_struct(Struct* _struct) {
+//   Struct *reversed = reverse_struct(_struct->next);
+//   reversed->next = NULL;
+
+// }
+
+// 構造体のリストから目的の
+static Type *find_struct(char *ident) {
+  for (Struct *_struct = Structs; _struct; _struct = _struct->next) {
+    if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
+      return _struct->decl;
+  }
+  error_at(token->str, "構造体宣言が見つかりません");
+  return NULL;
+}
+
 // ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
 static LVar *find_lvar(Token *tok) {
   for (LVar *var = locals; var; var = var->next)
@@ -119,8 +141,10 @@ static MStruct *new_mstruct(char *name, Type *ty) {
 }
 static Struct *new_struct(char *name) {
   Struct *_struct = calloc(1, sizeof(Struct));
-  _struct->name = name;
-  _struct->len = strlen(name);
+  _struct->decl = calloc(1, sizeof(Type));
+  _struct->decl->kind = TY_STRUCT;
+  _struct->decl->tag_name = name;
+  _struct->decl->tag_len = strlen(name);
   return _struct;
 }
 
@@ -144,9 +168,11 @@ static char *get_ident() {
   return strndup(tok->str, tok->len);
 }
 
-// decl_basictype = ("int" | "char")
+// decl_basictype = ("int" | "char" | "struct" ident)
 // 変数宣言のことも考慮して別の関数に振り分けた
 static Type *decl_basictype() {
+  if (consume_keyword("struct"))
+    return find_struct(get_ident());
   if (consume_keyword("int"))
     return new_type(TY_INT);
   if (!consume_keyword("char"))
@@ -385,7 +411,26 @@ static bool gvar_declaration() {
   return true;
 }
 
-// struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}"
+// 構造体にオフセット割り当て
+static void assign_struct_offsets(Struct *_struct) {
+  int offset = 0;
+  int struct_align = 0;
+
+  MStruct **member = _struct->decl->mem;
+  while (*member) {
+    if (!(*member)->ty->align)
+      error_at((*member)->ty->tok->str, "alignment is not defigned");
+    (*member)->offset = align_to(offset, (*member)->ty->align);
+    if (struct_align < (*member)->ty->align)
+      struct_align = (*member)->ty->align;
+    offset += (*member)->ty->align;
+    ++member;
+  }
+
+  _struct->decl->align = struct_align;
+}
+
+// struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}" ";"
 static bool struct_declaration() {
   if (!consume_keyword("struct")) {
     return false;
@@ -399,10 +444,11 @@ static bool struct_declaration() {
     Type *basety = decl_basictype();
     Type *ty = declarator(basety);
     expect(";");
-    _struct->mem[pMember_cnt++] = new_mstruct(ty->name, ty);
+    _struct->decl->mem[pMember_cnt++] = new_mstruct(ty->name, ty);
   }
   _struct->next = Structs;
   Structs = _struct;
+  assign_struct_offsets(_struct);
   expect(";");
 
   return true;
