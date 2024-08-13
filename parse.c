@@ -883,6 +883,14 @@ static Node *primary() {
     return new_node_num(node->ty->size);
   }
 
+  if (consume_keyword("_Alignof")) {
+    expect("(");
+    Type *basety = decl_basictype();
+    Type *ty = declarator_except_ident(basety);
+    expect(")");
+    return new_node_num(ty->align);
+  }
+
   Token *tok = consume_ident();
   if (tok) {
     // 関数呼び出し

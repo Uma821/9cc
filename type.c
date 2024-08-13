@@ -4,9 +4,9 @@ Type *new_type(TypeKind kind) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = kind;
   if (kind == TY_CHAR)
-    ty->size = 1; // sizeof(char) == 1
+    ty->align = ty->size = 1; // sizeof(char) == 1
   else
-    ty->size = 8;
+    ty->align = ty->size = 8;
   return ty;
 }
 
@@ -28,7 +28,7 @@ bool is_integer(Type *ty) {
 Type *pointer_to(Type *base) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TY_PTR;
-  ty->size = 8;
+  ty->align = ty->size = 8;
   ty->base = base;
   return ty;
 }
@@ -37,6 +37,7 @@ Type *array_of(Type *elem, size_t array_size) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TY_ARRAY;
   ty->size = array_size * elem->size; // sizeof
+  ty->align = elem->align;
   ty->array_size = array_size; // 要素数
   ty->elem = elem;
   return ty;

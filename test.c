@@ -582,4 +582,17 @@ int main() {
   assert(1, exclamation10());
   printf("int exclamation11() { char *x = \"abc\"; return x[!0]; }");
   assert(98, exclamation11());
+
+  printf("_Alignof(int)");
+  assert(8, _Alignof(int));
+  printf("_Alignof(int[4])");
+  assert(8, _Alignof(int[4]));
+  printf("_Alignof(int*)");
+  assert(8, _Alignof(int*));
+  printf("_Alignof(char)");
+  assert(1, _Alignof(char));
+  printf("_Alignof(char[5])");
+  assert(1, _Alignof(char[5]));
+  printf("_Alignof(char*)");
+  assert(8, _Alignof(char*));
 }
