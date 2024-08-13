@@ -3,6 +3,7 @@
 LVar *locals;
 GVar *globals;
 Str *strings;
+Struct *Structs;
 
 // ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
 static LVar *find_lvar(Token *tok) {
@@ -108,6 +109,19 @@ static GVar *new_gvar(char *name, Type *ty) {
   gvar->next = globals;
   globals = gvar;
   return gvar;
+}
+static MStruct *new_mstruct(char *name, Type *ty) {
+  MStruct *smem = calloc(1, sizeof(MStruct));
+  smem->name = name;
+  smem->ty = ty;
+  smem->len = strlen(name);
+  return smem;
+}
+static Struct *new_struct(char *name) {
+  Struct *_struct = calloc(1, sizeof(Struct));
+  _struct->name = name;
+  _struct->len = strlen(name);
+  return _struct;
 }
 
 static Str *new_str(Token *tok) {
@@ -371,6 +385,29 @@ static bool gvar_declaration() {
   return true;
 }
 
+// struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}"
+static bool struct_declaration() {
+  if (!consume_keyword("struct")) {
+    return false;
+  }
+  char *name = get_ident();
+  Struct *_struct = new_struct(name);
+  expect("{");
+  int pMember_cnt = 0;
+
+  while (!consume("}")) {
+    Type *basety = decl_basictype();
+    Type *ty = declarator(basety);
+    expect(";");
+    _struct->mem[pMember_cnt++] = new_mstruct(ty->name, ty);
+  }
+  _struct->next = Structs;
+  Structs = _struct;
+  expect(";");
+
+  return true;
+}
+
 static void create_param_lvars(Type *param) {
   if (param) {
     create_param_lvars(param->next);
@@ -378,7 +415,7 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-// program = (function | gvar_declaration ";")*
+// program = (function | gvar_declaration | struct_declaration)*
 Program *parse() {
   Program *prog = calloc(1, sizeof(Program));
   Function func_head = {};
@@ -386,6 +423,10 @@ Program *parse() {
 
   while (!at_eof()) {
     Token *origin = token; // 解析失敗時はトークンを元に戻す
+    if (struct_declaration()) { // 構造体宣言
+      continue;
+    }
+    token = origin;
     if (gvar_declaration()) { // グローバル変数宣言として読むことができるか
       continue;
     }

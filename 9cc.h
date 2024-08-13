@@ -97,6 +97,29 @@ struct Str {
 // 文字列リテラル
 extern Str *strings;
 
+typedef struct Struct Struct;
+typedef struct MStruct MStruct;
+// struct
+struct Struct {
+  Struct *next;     // 次の構造体かNULL
+  MStruct *mem[50]; // メンバへのポインタ
+  char *name;       // 構造体の名前
+  int len;          // 名前の長さ
+  int size;         // sizeof
+  int align;        // alignof
+  int offset;       // RBPからのオフセット
+};
+// structのメンバ
+struct MStruct {
+  char *name;    // メンバの名前
+  Type *ty;      // Type
+  int len;       // 名前の長さ
+  int offset;    // 構造体の先頭アドレスからのオフセット
+};
+
+// ローカル変数
+extern Struct *Structs;
+
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD,     // +
@@ -188,6 +211,7 @@ typedef enum {
 struct Type {
   TypeKind kind;
   int size;           // sizeof
+  int align;          // alignof
  
   Type *base;         // 〇へのポインタ
   size_t array_size;  // 配列

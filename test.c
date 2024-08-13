@@ -145,6 +145,10 @@ int string_literal_test4() { return *"abc"; }
 int string_literal_test5() { char *x; x = "abc"; return x[2]-x[0]; }
 int string_literal_test6() { return sizeof("abcdefg"); }
 
+struct A {
+  int mem1;
+};
+
 int comment_test1() {
   int //b=256876;
   a = 5;
