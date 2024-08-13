@@ -17,13 +17,23 @@ static int align_to(int n, int align) {
 
 // }
 
-// 構造体のリストから目的の
+// 構造体のリストから指定したタグ名に合う構造体を見つける
 static Type *find_struct(char *ident) {
   for (Struct *_struct = Structs; _struct; _struct = _struct->next) {
     if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
       return _struct->decl;
   }
   error_at(token->str, "構造体宣言が見つかりません");
+  return NULL;
+}
+
+// 構造体のメンバ群から指定したメンバを探す
+static MStruct *find_member(Type *struct_ty, char *ident) {
+  for (MStruct **mem = struct_ty->mem; *mem; ++mem) {
+    if (!strncmp(ident, (*mem)->name, (*mem)->len))
+      return *mem;
+  }
+  error_at(token->str, "メンバが見つかりません");
   return NULL;
 }
 
@@ -420,7 +430,7 @@ static void assign_struct_offsets(Struct *_struct) {
   while (*member) {
     if (!(*member)->ty->align)
       error_at((*member)->ty->tok->str, "alignment is not defigned");
-    (*member)->offset = align_to(offset, (*member)->ty->align);
+    (*member)->offset = offset = align_to(offset, (*member)->ty->align);
     if (struct_align < (*member)->ty->align)
       struct_align = (*member)->ty->align;
     offset += (*member)->ty->align;
@@ -935,6 +945,15 @@ static Node *primary() {
     Type *ty = declarator_except_ident(basety);
     expect(")");
     return new_node_num(ty->align);
+  }
+
+  if (consume_keyword("offsetof") || consume_keyword("__builtin_offsetof")) {
+    expect("(");
+    Type *type = decl_basictype();
+    expect(",");
+    char *member = get_ident();
+    expect(")");
+    return new_node_num(find_member(find_struct(type->tag_name), member)->offset);
   }
 
   Token *tok = consume_ident();

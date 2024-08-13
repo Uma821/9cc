@@ -187,7 +187,7 @@ static int is_alnum(char c) {
 // キーワードかどうかを調べる。
 static int is_keyword(const char * const p) {
   static char const * const kws[] = {
-    "if", "else", "for", "while", "return", "int", "char", "sizeof", "struct", "_Alignof"};
+    "if", "else", "for", "while", "return", "int", "char", "sizeof", "struct", "_Alignof", "offsetof", "__builtin_offsetof"};
   for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
     if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
       return strlen(kws[i]);

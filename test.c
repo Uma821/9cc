@@ -223,6 +223,12 @@ struct A {
   int mem3;
   char mem4;
 };
+struct B {
+  int mem1;
+  int mem2;
+  char mem3;
+  char mem4;
+};
 
 int main() {
 
@@ -600,4 +606,15 @@ int main() {
   assert(8, _Alignof(char*));
   printf("_Alignof(struct A)");
   assert(8, _Alignof(struct A));
+
+  printf("offsetof(struct A,mem1)");
+  assert(0, offsetof(struct A,mem1));
+  printf("offsetof(struct A,mem2)");
+  assert(8, offsetof(struct A,mem2));
+  printf("offsetof(struct A,mem3)");
+  assert(16, offsetof(struct A,mem3));
+  printf("offsetof(struct A,mem4)");
+  assert(24, offsetof(struct A,mem4));
+  printf("offsetof(struct B,mem4)");
+  assert(17, offsetof(struct B,mem4));
 }
