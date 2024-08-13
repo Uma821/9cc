@@ -200,9 +200,9 @@ static Type *decl_basictype() {
   return new_type(TY_CHAR);
 }
 
-// equal_basictype = ("int" | "char")
+// equal_basictype = ("int" | "char" | "struct")
 static bool equal_basictype() {
-  return equal_keyword("int") || equal_keyword("char");
+  return equal_keyword("int") || equal_keyword("char") || equal_keyword("struct");
 }
 
 static Type *declarator(Type *ty);
@@ -442,10 +442,12 @@ static void assign_struct_offsets(Struct *_struct) {
     member->offset = offset = align_to(offset, member->ty->align);
     if (struct_align < member->ty->align)
       struct_align = member->ty->align;
-    offset += member->ty->align;
+    offset += member->ty->size;
   }
 
+  offset = align_to(offset, struct_align);
   _struct->decl->align = struct_align;
+  _struct->decl->size = offset;
 }
 
 // struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}" ";"
@@ -791,6 +793,11 @@ static Node *new_add_asgn(Node *lhs, Node *rhs) {
     return new_node(ND_ADDASGN, lhs, rhs);
   }
 
+  if (lhs->ty->kind != TY_PTR)
+    error_at(token->str, "左辺値はポインタではありません");
+  if (!is_integer(rhs->ty))
+    error_at(token->str, "右辺値は整数型ではありません");
+
   // ptr += num
   rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
   return new_node(ND_ADDASGN, lhs, rhs);
@@ -892,20 +899,38 @@ static Node *unary() {
   return postfix();
 }
 
-// postfix = primary ("[" expr "]")* ("++"|"--")?
+// postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
 static Node *postfix() {
   Node *node = primary();
-  while (consume("[")) {
-    node = new_node(ND_DEREF, new_add(node, expr()), NULL);
-    expect("]");
+
+  for (;;) {
+    if (consume("[")) {
+      node = new_node(ND_DEREF, new_add(node, expr()), NULL);
+      expect("]");
+    }
+    else if (consume(".")) {
+      add_type(node);
+      MStruct *member = find_member(node->ty, get_ident());
+      node = new_node(ND_DEREF, new_node(ND_ADD, new_node(ND_ADDR, node, NULL), new_node_num(member->offset)), NULL);
+      node->ty = member->ty;
+    }
+    else if (consume("->")) {
+      add_type(node);
+      decay_arr(node);
+      if (node->ty->kind != TY_PTR)
+        error_at(token->str, "'->' 演算子は構造体のポインタ型のみに使用できます");
+      MStruct *member = find_member(node->ty->base, get_ident());
+      node = new_node(ND_DEREF, new_node(ND_ADD, node, new_node_num(member->offset)), NULL);
+      node->ty = member->ty;
+    }
+
+    else if (consume("++")) // 後置インクリメント
+      return new_sub(new_add_asgn(node, new_node_num(1)), new_node_num(1));
+    else if (consume("--")) // 後置デクリメント
+      return new_add(new_sub_asgn(node, new_node_num(1)), new_node_num(1));
+    else
+      return node;
   }
-
-  if (consume("++")) // 後置インクリメント
-    return new_sub(new_add_asgn(node, new_node_num(1)), new_node_num(1));
-  if (consume("--")) // 後置デクリメント
-    return new_add(new_sub_asgn(node, new_node_num(1)), new_node_num(1));
-
-  return node;
 }
 
 // funcall = "(" (assign ("," assign)*)? ")"

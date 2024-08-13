@@ -232,9 +232,19 @@ struct B {
   char mem3;
   char mem4;
 };
+struct C {
+  int mem1;
+  struct B mem2;
+  char mem3;
+  struct B *mem4;
+};
 
-// int struct_test1() { struct A a; a.mem1 = 1; a.mem2 = 2; a.mem3 = 3; a.mem4 = 4; return a++; }
-// int struct_test2() { struct B b; b.mem1 = 1; b.mem2 = 2; b.mem3 = 3; b.mem4 = 4; return b++; }
+int struct_test1() { struct A a; a.mem1 = 1; a.mem2 = 2; a.mem3 = 3; a.mem4 = 4; return a.mem1; }
+int struct_test2() { struct B b; b.mem1 = 1; b.mem2 = 2; b.mem3 = 3; b.mem4 = 4; return b.mem1; }
+int struct_test3() { struct A aa[1], *p[1]; int a[3] = {0, 1, 2}; aa->mem2; return sizeof(struct A);; }
+int struct_test4() { struct C cc; cc.mem2.mem1 = 2; cc.mem2.mem2 = 1; cc.mem3 = 10;; return cc.mem2.mem1+cc.mem2.mem2; }
+int struct_test5() { struct C cc, *pcc; pcc = &cc;(*pcc).mem2.mem1 = 10; pcc->mem2.mem2 = 10; cc.mem3 = 40;; return cc.mem2.mem1+(*pcc).mem2.mem2; }
+int struct_test6() { struct C cc, *pcc; pcc = &cc;pcc->mem2.mem2 = 5; (*pcc).mem2.mem1 = -4; (*pcc).mem4 = &(*pcc).mem2; cc.mem3 = -3;; return cc.mem2.mem1+pcc->mem4->mem2; }
 
 int main() {
 
@@ -618,6 +628,10 @@ int main() {
   assert(8, _Alignof(char*));
   printf("_Alignof(struct A)");
   assert(8, _Alignof(struct A));
+  printf("sizeof(struct A)");
+  assert(32, sizeof(struct A));
+  printf("sizeof(struct B)");
+  assert(24, sizeof(struct B));
 
   printf("offsetof(struct A,mem1)");
   assert(0, offsetof(struct A,mem1));
@@ -629,4 +643,17 @@ int main() {
   assert(24, offsetof(struct A,mem4));
   printf("offsetof(struct B,mem4)");
   assert(17, offsetof(struct B,mem4));
+
+  printf("int struct_test1() { struct A a; a.mem1 = 1; a.mem2 = 2; a.mem3 = 3; a.mem4 = 4; return a.mem1; }");
+  assert(1, struct_test1());
+  printf("int struct_test2() { struct B b; b.mem1 = 1; b.mem2 = 2; b.mem3 = 3; b.mem4 = 4; return b.mam1; }");
+  assert(1, struct_test2());
+  printf("int struct_test3() { struct A aa[1], *p[1]; int a[3] = {0, 1, 2}; aa->mem2; return sizeof(struct A);; }");
+  assert(32, struct_test3());
+  printf("int struct_test4() { struct C cc; cc.mem2.mem1 = 2; cc.mem2.mem2 = 1; cc.mem3 = 10;; return cc.mem2.mem1+cc.mem2.mem2; }");
+  assert(3, struct_test4());
+  printf("int struct_test5() { struct C cc, *pcc; pcc = &cc;(*pcc).mem2.mem1 = 10; pcc->mem2.mem2 = 10; cc.mem3 = 40;; return cc.mem2.mem1+(*pcc).mem2.mem2; }");
+  assert(20, struct_test5());
+  printf("int struct_test6() { struct C cc, *pcc; pcc = &cc;pcc->mem2.mem2 = 5; (*pcc).mem2.mem1 = -4; (*pcc).mem4 = &(*pcc).mem2; cc.mem3 = -3;; return cc.mem2.mem1+pcc->mem4->mem2; }");
+  assert(1, struct_test6());
 }
