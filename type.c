@@ -48,6 +48,10 @@ static Function* find_function(char *funcname) {
     if (!strcmp(funcname, fn->name))
       return fn;
   }
+  for (Function *fn = prototypes; fn; fn = fn->next) {
+    if (!strcmp(funcname, fn->name))
+      return fn;
+  }
   return NULL;
 }
 

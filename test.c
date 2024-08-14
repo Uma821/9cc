@@ -269,6 +269,8 @@ char char_pointer_to[20] = "akasatana";
 int *pointer_to_int() { return &gvar_test_a; }
 char *pointer_to_char() { return char_pointer_to+5; }
 
+void *calloc();
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -702,5 +704,7 @@ int main() {
   char *pointer_to_char_a = pointer_to_char();
   assert(116, *pointer_to_char_a);
 
-  // void *p = calloc(1, sizeof(struct test));
+  printf("struct test *p = calloc(1, sizeof(struct test)); p->bar");
+  struct test *p = calloc(1, sizeof(struct test));
+  assert(0, p->bar);
 }

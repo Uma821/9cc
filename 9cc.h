@@ -187,6 +187,7 @@ struct Function {
 
 // 関数
 extern Function *functions;
+extern Function *prototypes;
 
 // 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
 typedef struct Program Program;

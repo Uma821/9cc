@@ -5,6 +5,7 @@ GVar *globals;
 Str *strings;
 Struct *structs;
 Function *functions;
+Function *prototypes;
 
 // 'n'を'align'の最も近い倍数に切り上げる。
 // align_to(5, 8) == 8, align_to(11, 8) == 16.
@@ -210,7 +211,8 @@ static bool equal_basictype() {
 
 static Type *declarator(Type *ty);
 Program *parse();
-static Function *function();
+static Function *function_definition();
+static Function *prototype_declaration();
 static Node *stmt();
 static Node *expr();
 static Node *assign();
@@ -487,7 +489,7 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-// program = (function | gvar_declaration | struct_declaration | struct_declaration)*
+// program = (function_definition | prototype_declaration | gvar_declaration | struct_declaration | struct_declaration)*
 Program *parse() {
   Program *prog = calloc(1, sizeof(Program));
   Function func_head = {};
@@ -503,8 +505,16 @@ Program *parse() {
       continue;
     }
     token = origin;
-    func_cur = func_cur->next = function();
-    functions = func_head.next;
+    Function *func = function_definition();
+    if (func) {
+      func_cur = func_cur->next = func;
+      functions = func_head.next;
+      continue;
+    }
+    token = origin;
+    func = prototype_declaration();
+    func->next = prototypes;
+    prototypes = func;
   }
     //error("正しくパースできませんでした。");
 
@@ -512,8 +522,8 @@ Program *parse() {
   return prog;
 }
 
-// function = decl_basictype function_declarator stmt
-static Function *function() { // Function definition
+// function_definition = decl_basictype function_declarator stmt
+static Function *function_definition() {
   Type *ty = decl_basictype();
   ty = function_declarator(ty);
 
@@ -525,8 +535,26 @@ static Function *function() { // Function definition
   fn->params = locals;
 
   if (!at_block())
-    error("中括弧で覆われていません。");
+    return NULL;
   fn->body = stmt();
+  fn->locals = locals;
+  fn->ret_ty = ty->return_ty;
+  return fn;
+}
+
+// prototype_declaration = decl_basictype function_declarator ";"
+static Function *prototype_declaration() {
+  Type *ty = decl_basictype();
+  ty = function_declarator(ty);
+
+  locals = NULL; // NULLのときが終端とするため
+
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = ty->name;
+  create_param_lvars(ty->params);
+  fn->params = locals;
+
+  expect(";");
   fn->locals = locals;
   fn->ret_ty = ty->return_ty;
   return fn;
