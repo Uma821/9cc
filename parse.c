@@ -3,7 +3,8 @@
 LVar *locals;
 GVar *globals;
 Str *strings;
-Struct *Structs;
+Struct *structs;
+Function *functions;
 
 // 'n'を'align'の最も近い倍数に切り上げる。
 // align_to(5, 8) == 8, align_to(11, 8) == 16.
@@ -29,7 +30,7 @@ static int align_to(int n, int align) {
 
 // 構造体のリストから指定したタグ名に合う構造体を見つける
 static Type *find_struct(char *ident) {
-  for (Struct *_struct = Structs; _struct; _struct = _struct->next) {
+  for (Struct *_struct = structs; _struct; _struct = _struct->next) {
     if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
       return _struct->decl;
   }
@@ -468,8 +469,8 @@ static bool struct_declaration() {
     cur = cur->next = new_mstruct(ty->name, ty);
   }
   _struct->decl->member = head.next;
-  _struct->next = Structs;
-  Structs = _struct;
+  _struct->next = structs;
+  structs = _struct;
   assign_struct_offsets(_struct);
   expect(";");
 
@@ -500,6 +501,7 @@ Program *parse() {
     }
     token = origin;
     func_cur = func_cur->next = function();
+    functions = func_head.next;
   }
     //error("正しくパースできませんでした。");
 
@@ -523,6 +525,7 @@ static Function *function() { // Function definition
     error("中括弧で覆われていません。");
   fn->body = stmt();
   fn->locals = locals;
+  fn->ret_ty = ty->return_ty;
   return fn;
 }
 
@@ -584,7 +587,10 @@ static Node *stmt() {
     node->then = stmt();
     return node;
   } else if (consume_keyword("return")) {
-    node = new_node(ND_RETURN, expr(), NULL);
+    node = expr();
+    add_type(node);
+    decay_arr(node);
+    node = new_node(ND_RETURN, node, NULL);
   } else if (consume(";")) { // ";"だけの文
     return new_node(ND_BLOCK, NULL, NULL); // 空のブロック
   } else {

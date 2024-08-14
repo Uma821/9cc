@@ -246,6 +246,20 @@ int struct_test4() { struct C cc; cc.mem2.mem1 = 2; cc.mem2.mem2 = 1; cc.mem3 = 
 int struct_test5() { struct C cc, *pcc; pcc = &cc;(*pcc).mem2.mem1 = 10; pcc->mem2.mem2 = 10; cc.mem3 = 40;; return cc.mem2.mem1+(*pcc).mem2.mem2; }
 int struct_test6() { struct C cc, *pcc; pcc = &cc;pcc->mem2.mem2 = 5; (*pcc).mem2.mem1 = -4; (*pcc).mem4 = &(*pcc).mem2; cc.mem3 = -3;; return cc.mem2.mem1+pcc->mem4->mem2; }
 
+char integer_promotion1() {
+    char a = 30;
+    return (a * a) / 25; // 36
+}
+char integer_promotion2() {
+    char a = 30;
+    char b = a * a; // 900 ==> -124 (mod 256)
+    return b / 25; // -4
+}
+
+char char_pointer_to[20] = "akasatana";
+int *pointer_to_int() { return &gvar_test_a; }
+char *pointer_to_char() { return char_pointer_to+5; }
+
 int main() {
 
   printf("int ret_val1() { return 0; }");
@@ -656,4 +670,16 @@ int main() {
   assert(20, struct_test5());
   printf("int struct_test6() { struct C cc, *pcc; pcc = &cc;pcc->mem2.mem2 = 5; (*pcc).mem2.mem1 = -4; (*pcc).mem4 = &(*pcc).mem2; cc.mem3 = -3;; return cc.mem2.mem1+pcc->mem4->mem2; }");
   assert(1, struct_test6());
+
+  printf("char integer_promotion1() { char a = 30; return (a * a) / 25; }");
+  assert(36, integer_promotion1());
+  printf("char integer_promotion2() { char a = 30; char b = a * a; return b / 25; }");
+  assert(-4, integer_promotion2());
+
+  printf("int *pointer_to_int() { return &a; }");
+  int *pointer_to_int_a = pointer_to_int();
+  assert(1, *pointer_to_int_a);
+  printf("char char_pointer_to[20] = \"akasatana\"; int *pointer_to_char() { return char_pointer_to+10; }");
+  char *pointer_to_char_a = pointer_to_char();
+  assert(116, *pointer_to_char_a);
 }

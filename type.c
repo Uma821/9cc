@@ -43,6 +43,20 @@ Type *array_of(Type *elem, size_t array_size) {
   return ty;
 }
 
+static Function* find_function(char *funcname) {
+  for (Function *fn = functions; fn; fn = fn->next) {
+    if (!strcmp(funcname, fn->name))
+      return fn;
+  }
+  return NULL;
+}
+
+static Type* detect_func_rettype(char *funcname) {
+  Function *fn = find_function(funcname);
+  if (fn) return fn->ret_ty;
+  return new_type(TY_INT);
+}
+
 // ポインタの演算と整数型の演算では処理が変わるため
 void add_type(Node *node) {
   if (!node || node->ty)
@@ -87,8 +101,10 @@ void add_type(Node *node) {
   case ND_LT:
   case ND_LE:
   case ND_NUM:
-  case ND_FUNCALL:
     node->ty = new_type(TY_INT);
+    return;
+  case ND_FUNCALL:
+    node->ty = detect_func_rettype(node->funcname);
     return;
   case ND_LVAR:
     if(!node->ty) // 降格が起こっていない(デフォルト)
