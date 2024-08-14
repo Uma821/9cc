@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +53,11 @@ int at_block();
 Token *consume_ident();
 Token *consume_str();
 void tokenize();
+
+// プロトタイプ宣言
+int ispunct(int c);
+int isspace(int c);
+int isdigit(int c);
 
 //
 // parse.c
