@@ -655,6 +655,14 @@ int main() {
   assert(32, sizeof(struct A));
   printf("sizeof(struct B)");
   assert(24, sizeof(struct B));
+  printf("_Alignof(void)");
+  assert(1, _Alignof(void));
+  printf("_Alignof(void*)");
+  assert(8, _Alignof(void*));
+  printf("sizeof(void)");
+  assert(1, sizeof(void));
+  printf("sizeof(void*)");
+  assert(8, sizeof(void*));
 
   printf("offsetof(struct A,mem1)");
   assert(0, offsetof(struct A,mem1));
@@ -693,4 +701,6 @@ int main() {
   printf("char char_pointer_to[20] = \"akasatana\"; int *pointer_to_char() { return char_pointer_to+10; }");
   char *pointer_to_char_a = pointer_to_char();
   assert(116, *pointer_to_char_a);
+
+  // void *p = calloc(1, sizeof(struct test));
 }

@@ -189,21 +189,23 @@ static char *get_ident() {
   return strndup(tok->str, tok->len);
 }
 
-// decl_basictype = ("int" | "char" | "struct" ident)
+// decl_basictype = ("int" | "char" | "void" | "struct" ident)
 // 変数宣言のことも考慮して別の関数に振り分けた
 static Type *decl_basictype() {
   if (consume_keyword("struct"))
     return find_struct(get_ident());
   if (consume_keyword("int"))
     return new_type(TY_INT);
-  if (!consume_keyword("char"))
+  if (consume_keyword("char"))
+    return new_type(TY_CHAR);
+  if (!consume_keyword("void"))
     error_at(token->str, "型名が必要");
-  return new_type(TY_CHAR);
+  return new_type(TY_VOID);
 }
 
-// equal_basictype = ("int" | "char" | "struct")
+// equal_basictype = ("int" | "char" | "void" | "struct")
 static bool equal_basictype() {
-  return equal_keyword("int") || equal_keyword("char") || equal_keyword("struct");
+  return equal_keyword("int") || equal_keyword("char") || equal_keyword("void") || equal_keyword("struct");
 }
 
 static Type *declarator(Type *ty);

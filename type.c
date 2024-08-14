@@ -3,7 +3,7 @@
 Type *new_type(TypeKind kind) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = kind;
-  if (kind == TY_CHAR)
+  if (kind == TY_CHAR || kind == TY_VOID)
     ty->align = ty->size = 1; // sizeof(char) == 1
   else
     ty->align = ty->size = 8;
@@ -18,7 +18,7 @@ Type *func_type(Type *return_ty) {
 }
 
 bool is_integer(Type *ty) {
-  return ty->kind == TY_INT || ty->kind == TY_CHAR;
+  return ty->kind == TY_INT || ty->kind == TY_CHAR || ty->kind == TY_VOID;
 }
 
 // bool is_lvalue(Node *node) {

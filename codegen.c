@@ -50,7 +50,7 @@ static void gen(Node *node) {
     if(!node->ty->decayed) { // 配列からポインタへの降格？暗黙型変換が生じたか？
     // 配列は先頭要素へのアドレスを返せばよい、以下3行はその中身を取り出すため必要ない
       printf("  pop rax\n");
-      if(node->ty->kind == TY_CHAR) {
+      if(node->ty->size == 1) {
         printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
         printf("  push rax\n");
       } else {
@@ -65,7 +65,7 @@ static void gen(Node *node) {
   case ND_DEREF:
     gen(node->lhs);
     printf("  pop rax\n");
-    if(node->ty->kind == TY_CHAR) {
+    if(node->ty->size == 1) {
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
       printf("  push rax\n");
     } else {
@@ -114,7 +114,7 @@ static void gen(Node *node) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rdi\n");
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
@@ -134,14 +134,14 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  push rax\n"); // アドレス保存
 
-    if(node->lhs->ty->kind == TY_CHAR)
+    if(node->lhs->ty->size == 1)
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
     else
       printf("  mov rax, [rax]\n");
 
     printf("  add rdi, rax\n");
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
       printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
@@ -159,7 +159,7 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  push rax\n"); // アドレス保存
 
-    if(node->lhs->ty->kind == TY_CHAR)
+    if(node->lhs->ty->size == 1)
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
     else
       printf("  mov rax, [rax]\n");
@@ -167,7 +167,7 @@ static void gen(Node *node) {
     printf("  sub rax, rdi\n");
     printf("  mov rdi, rax\n");
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
       printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
@@ -185,14 +185,14 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  push rax\n"); // アドレス保存
 
-    if(node->lhs->ty->kind == TY_CHAR)
+    if(node->lhs->ty->size == 1)
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
     else
       printf("  mov rax, [rax]\n");
 
     printf("  imul rdi, rax\n");
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
       printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
@@ -210,7 +210,7 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  push rax\n"); // アドレス保存
 
-    if(node->lhs->ty->kind == TY_CHAR)
+    if(node->lhs->ty->size == 1)
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
     else
       printf("  mov rax, [rax]\n");
@@ -219,7 +219,7 @@ static void gen(Node *node) {
     printf("  idiv rdi\n"); // 被除数は[RDX,RAX] (128)ビット整数とみなす
     printf("  mov rdi, rax\n"); // 商はraxレジスタに格納される
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
       printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
@@ -237,7 +237,7 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  push rax\n"); // アドレス保存
 
-    if(node->lhs->ty->kind == TY_CHAR)
+    if(node->lhs->ty->size == 1)
       printf("  movsx rax, BYTE PTR [rax]\n"); // signed char
     else
       printf("  mov rax, [rax]\n");
@@ -246,7 +246,7 @@ static void gen(Node *node) {
     printf("  idiv rdi\n");
     printf("  mov rdi, rdx\n"); // 剰余はrdxレジスタに格納される
 
-    if(node->lhs->ty->kind == TY_CHAR) {
+    if(node->lhs->ty->size == 1) {
       printf("  pop rax\n");
       printf("  mov [rax], dil\n"); // 8ビットレジスタに変換
       printf("  push rdi\n"); // 先頭56ビットを0埋めできてない
@@ -422,7 +422,7 @@ void codegen(Program *prog) {
 
           if (gvar->ty->elem->kind == TY_INT)
             printf("  .quad "); // 8バイト
-          else if (gvar->ty->elem->kind == TY_CHAR)
+          else if (gvar->ty->elem->kind == TY_CHAR || gvar->ty->elem->kind == TY_VOID)
             printf("  .byte ");
           else if (gvar->ty->elem->kind == TY_PTR)
             printf("  .quad ");
@@ -435,7 +435,7 @@ void codegen(Program *prog) {
       } else { // 配列以外の初期化
         if (gvar->ty->kind == TY_INT)
           printf("  .quad "); // 8バイト
-        else if (gvar->ty->kind == TY_CHAR)
+        else if (gvar->ty->kind == TY_CHAR || gvar->ty->kind == TY_VOID)
           printf("  .byte ");
         else if (gvar->ty->kind == TY_PTR)
           printf("  .quad ");
