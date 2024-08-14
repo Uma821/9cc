@@ -458,7 +458,8 @@ static bool struct_declaration() {
   }
   char *name = get_ident();
   Struct *_struct = new_struct(name);
-  expect("{");
+  if(!consume("{"))
+    return false;
   MStruct head = {};
   MStruct *cur = &head;
 
@@ -484,7 +485,7 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-// program = (function | gvar_declaration | struct_declaration)*
+// program = (function | gvar_declaration | struct_declaration | struct_declaration)*
 Program *parse() {
   Program *prog = calloc(1, sizeof(Program));
   Function func_head = {};
