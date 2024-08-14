@@ -7,6 +7,8 @@ int assert(int expected, int actual) {
   exit(1);
 }
 
+void *NULL = 0;
+
 int ret_val1() { return 0; }
 int ret_val2() { return 42; }
 int ret_val3() { return 5+20-4; }
@@ -270,6 +272,9 @@ int *pointer_to_int() { return &gvar_test_a; }
 char *pointer_to_char() { return char_pointer_to+5; }
 
 void *calloc();
+
+int *calloc_test1() { struct test *p = calloc(1, sizeof(struct test)); return p->bar; }
+int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }
 
 int main() {
 
@@ -704,7 +709,8 @@ int main() {
   char *pointer_to_char_a = pointer_to_char();
   assert(116, *pointer_to_char_a);
 
-  printf("struct test *p = calloc(1, sizeof(struct test)); p->bar");
-  struct test *p = calloc(1, sizeof(struct test));
-  assert(0, p->bar);
+  printf("int *calloc_test1() { struct test *p = calloc(1, sizeof(struct test)); return p->bar; }");
+  assert(0, calloc_test1());
+  printf("int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }");
+  assert(-1, calloc_test2());
 }
