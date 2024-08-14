@@ -1,10 +1,11 @@
 #include <ctype.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#define true 1
+#define false 0
 
 typedef struct Type Type;
 typedef struct Node Node;
@@ -43,13 +44,13 @@ extern Token *token;
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
-bool consume(char *op);
-bool consume_keyword(char *op);
-bool equal_keyword(char *op);
+int consume(char *op);
+int consume_keyword(char *op);
+int equal_keyword(char *op);
 void expect(char *op);
 int expect_number();
-bool at_eof();
-bool at_block();
+int at_eof();
+int at_block();
 Token *consume_ident();
 Token *consume_str();
 void tokenize();
@@ -233,7 +234,7 @@ struct Type {
 
 Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
-bool is_integer(Type *ty);
+int is_integer(Type *ty);
 Type *pointer_to(Type *base);
 Type *array_of(Type *elem, size_t size);
 void add_type(Node *node);

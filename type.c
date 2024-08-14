@@ -17,7 +17,7 @@ Type *func_type(Type *return_ty) {
   return ty;
 }
 
-bool is_integer(Type *ty) {
+int is_integer(Type *ty) {
   return ty->kind == TY_INT || ty->kind == TY_CHAR || ty->kind == TY_VOID;
 }
 

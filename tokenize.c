@@ -57,7 +57,7 @@ void error_at(char *loc, char *msg, ...) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
+int consume(char *op) {
   if (token->kind != TK_RESERVED ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -66,7 +66,7 @@ bool consume(char *op) {
   return true;
 }
 
-bool consume_keyword(char *op) {
+int consume_keyword(char *op) {
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -75,7 +75,7 @@ bool consume_keyword(char *op) {
   return true;
 }
 
-bool equal_keyword(char *op) {
+int equal_keyword(char *op) {
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -103,7 +103,7 @@ int expect_number() {
   return val;
 }
 
-bool at_block() {
+int at_block() {
   if (token->kind != TK_RESERVED ||
       token->len != 1 ||
       token->str[0] != '{')
@@ -111,7 +111,7 @@ bool at_block() {
   return true;
 }
 
-bool at_eof() {
+int at_eof() {
   return token->kind == TK_EOF;
 }
 
@@ -141,24 +141,24 @@ static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
-static bool startswith(char *p, char *q) {
+static int startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
-static bool isdoublequote(char c) {
+static int isdoublequote(char c) {
   return c == '"';
 }
-static bool isescapedoublequote(char *p) {
+static int isescapedoublequote(char *p) {
   return startswith(p, "\\\"");
 }
 
 // cが識別子の最初の文字として有効な場合、trueを返す
-static bool is_ident1(char c) {
+static int is_ident1(char c) {
   return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
 // cが識別子の2番目以降の文字として有効な場合、trueを返す
-static bool is_ident2(char c) {
+static int is_ident2(char c) {
   return is_ident1(c) || ('0' <= c && c <= '9');
 }
 

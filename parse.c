@@ -219,7 +219,7 @@ static Type *decl_basictype() {
 }
 
 // equal_basictype = ("int" | "char" | "void" | "struct")
-static bool equal_basictype() {
+static int equal_basictype() {
   return equal_keyword("int") || equal_keyword("char") || equal_keyword("void") || equal_keyword("struct");
 }
 
@@ -377,13 +377,13 @@ static Node *declaration() {
   return node;
 }
 // gvar_declaration = decl_basictype (declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))? ("," declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))?)*)? ";"
-static bool gvar_declaration() {
+static int gvar_declaration() {
   Type *basety = decl_basictype();
 
   while (!consume(";")) {
     Type *ty = declarator(basety);
     if (!ty) // 宣言として読み込み失敗
-      return NULL;
+      return false;
     GVar *gvar = new_gvar(ty->name, ty);
 
     if (consume("=")) {
@@ -470,7 +470,7 @@ static void assign_struct_offsets(Struct *_struct) {
 }
 
 // struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}" ";"
-static bool struct_declaration() {
+static int struct_declaration() {
   if (!consume_keyword("struct")) {
     return false;
   }
