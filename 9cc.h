@@ -2,12 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #define true 1
 #define false 0
 
 typedef struct Type Type;
 typedef struct Node Node;
+
+// errno.h プロトタイプ宣言
+int *__errno_location(void);
+// ctype.h プロトタイプ宣言
+int ispunct(int c);
+int isspace(int c);
+int isdigit(int c);
 
 //
 // tokenize.c
@@ -53,11 +59,6 @@ int at_block();
 Token *consume_ident();
 Token *consume_str();
 void tokenize();
-
-// プロトタイプ宣言
-int ispunct(int c);
-int isspace(int c);
-int isdigit(int c);
 
 //
 // parse.c

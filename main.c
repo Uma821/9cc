@@ -5,14 +5,14 @@ static char *read_file(char *path) {
   // ファイルを開く
   FILE *fp = fopen(path, "r");
   if (!fp)
-    error("cannot open %s: %s", path, strerror(errno));
+    error("cannot open %s: %s", path, strerror(*__errno_location()));
 
   // ファイルの長さを調べる
   if (fseek(fp, 0, SEEK_END) == -1)
-    error("%s: fseek: %s", path, strerror(errno));
+    error("%s: fseek: %s", path, strerror(*__errno_location()));
   size_t size = ftell(fp);
   if (fseek(fp, 0, SEEK_SET) == -1)
-    error("%s: fseek: %s", path, strerror(errno));
+    error("%s: fseek: %s", path, strerror(*__errno_location()));
 
   // ファイル内容を読み込む
   char *buf = calloc(1, size + 2);
