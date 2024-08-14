@@ -7,6 +7,20 @@ Struct *structs;
 Function *functions;
 Function *prototypes;
 
+static size_t strnlen(const char *s, size_t n) {
+	const char *p = memchr(s, 0, n);
+	return p ? p-s : n;
+}
+
+static char *strndup(const char *s, size_t n) {
+	size_t l = strnlen(s, n);
+	char *d = malloc(l+1);
+	if (!d) return NULL;
+	memcpy(d, s, l);
+	d[l] = 0;
+	return d;
+}
+
 // 'n'を'align'の最も近い倍数に切り上げる。
 // align_to(5, 8) == 8, align_to(11, 8) == 16.
 static int align_to(int n, int align) {

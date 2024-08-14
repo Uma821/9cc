@@ -1,4 +1,3 @@
-#define _XOPEN_SOURCE 700 // POSIX 関数の要求(strndup)
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
