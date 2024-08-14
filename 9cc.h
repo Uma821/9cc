@@ -9,11 +9,11 @@ typedef struct Type Type;
 typedef struct Node Node;
 
 // errno.h プロトタイプ宣言
-int *__errno_location(void);
+long *__errno_location(void);
 // ctype.h プロトタイプ宣言
-int ispunct(int c);
-int isspace(int c);
-int isdigit(int c);
+long ispunct(long c);
+long isspace(long c);
+long isdigit(long c);
 
 //
 // tokenize.c
@@ -34,9 +34,9 @@ typedef struct Token Token;
 struct Token {
   TokenKind kind; // トークンの型
   Token *next;    // 次の入力トークン
-  int val;        // kindがTK_NUMの場合、その数値
+  long val;        // kindがTK_NUMの場合、その数値
   char *str;      // トークン文字列
-  int len;        // トークンの長さ
+  long len;        // トークンの長さ
 };
 
 // 入力プログラム
@@ -49,13 +49,13 @@ extern Token *token;
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
-int consume(char *op);
-int consume_keyword(char *op);
-int equal_keyword(char *op);
+long consume(char *op);
+long consume_keyword(char *op);
+long equal_keyword(char *op);
 void expect(char *op);
-int expect_number();
-int at_eof();
-int at_block();
+long expect_number();
+long at_eof();
+long at_block();
 Token *consume_ident();
 Token *consume_str();
 void tokenize();
@@ -70,8 +70,8 @@ struct LVar {
   LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
   Type *ty;   // Type
-  int len;    // 名前の長さ
-  int offset; // RBPからのオフセット
+  long len;    // 名前の長さ
+  long offset; // RBPからのオフセット
 };
 
 // ローカル変数
@@ -83,7 +83,7 @@ struct GVar {
   GVar *next; // 次の変数かNULL
   char *name; // 変数の名前
   Type *ty;   // Type
-  int len;    // 名前の長さ
+  long len;    // 名前の長さ
   Node *init; // 初期化式
 };
 
@@ -96,7 +96,7 @@ struct Str {
   Str *next; // 次の変数かNULL
   char *literal; // 文字列リテラル
   Type *ty; // Type
-  int num; // 何番目の文字列リテラルか
+  long num; // 何番目の文字列リテラルか
 };
 
 // 文字列リテラル
@@ -114,8 +114,8 @@ struct MStruct {
   MStruct *next; // 次の構造体かNULL
   char *name;    // メンバの名前
   Type *ty;      // Type
-  int len;       // 名前の長さ
-  int offset;    // 構造体の先頭アドレスからのオフセット
+  long len;       // 名前の長さ
+  long offset;    // 構造体の先頭アドレスからのオフセット
 };
 
 // ローカル変数
@@ -160,10 +160,10 @@ struct Node {
   NodeKind kind;  // ノードの型
   Node *next;     // 次のノード
   Token *tok;     // このノードのトークン
-  Type *ty;       // そのノードのタイプ,intやintへのポインタなど
+  Type *ty;       // そのノードのタイプ,longやlongへのポインタなど
   Node *lhs;      // 左辺
   Node *rhs;      // 右辺
-  int val;        // kindがND_NUMの場合のみ使う
+  long val;        // kindがND_NUMの場合のみ使う
   Str *string;    // kindがND_STRの場合のみ使う
   LVar *lvar;     // kindがND_LVARの場合のみ使う
   GVar *gvar;     // kindがND_GVARの場合のみ使う
@@ -187,8 +187,13 @@ struct Function {
   Node *body;
   LVar *locals;
   Type *ret_ty;
-  int stack_size;
+  long stack_size;
 };
+
+// codegen_helper.c
+long align_to(long n, long align);
+void assign_lvar_offsets(struct Function *funcs);
+void assign_string_literal_num();
 
 // 関数
 extern Function *functions;
@@ -218,13 +223,13 @@ typedef enum {
 
 struct Type {
   TypeKind kind;
-  int size;           // sizeof
-  int align;          // alignof
+  long size;           // sizeof
+  long align;          // alignof
  
   Type *base;         // 〇へのポインタ
   size_t array_size;  // 配列
   Type *elem;         // 配列
-  int decayed;        // 配列->ポインタへの降格発生時のフラグ
+  long decayed;        // 配列->ポインタへの降格発生時のフラグ
   char *name;         // 定義
   Token *tok;         // 変数の位置情報など
   // 関数
@@ -233,13 +238,13 @@ struct Type {
   Type *next;
   // 構造体
   char *tag_name;   // 構造体の名前
-  int tag_len;      // 構造体の名前の長さ
+  long tag_len;      // 構造体の名前の長さ
   MStruct *member;  // メンバへのポインタ
 };
 
 Type *new_type(TypeKind kind);
 Type *func_type(Type *return_ty);
-int is_integer(Type *ty);
+long is_integer(Type *ty);
 Type *pointer_to(Type *base);
 Type *array_of(Type *elem, size_t size);
 void add_type(Node *node);

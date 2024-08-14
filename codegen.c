@@ -5,22 +5,16 @@ static Function *current_fn;
 
 static void gen();
 
-static int count(void) {
-  static int i = 1;
+static long count(void) {
+  static long i = 1;
   return i++;
-}
-
-// 'n'を'align'の最も近い倍数に切り上げる。
-// align_to(5, 8) == 8, align_to(11, 8) == 16.
-static int align_to(int n, int align) {
-  return (n + align - 1) / align * align;
 }
 
 static void gen_variable(Node *node) {
   switch (node->kind) {
   case ND_LVAR:
     printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->lvar->offset);
+    printf("  sub rax, %ld\n", node->lvar->offset);
     printf("  push rax\n");
     return;
   case ND_GVAR:
@@ -42,7 +36,7 @@ static void gen(Node *node) {
     printf("  push %d\n", node->val);
     return;
   case ND_STR:
-    printf("  push offset .LC%d\n", node->string->num);
+    printf("  push offset .LC%ld\n", node->string->num);
     return;
   case ND_LVAR:
   case ND_GVAR:
@@ -74,38 +68,38 @@ static void gen(Node *node) {
     }
     return;
   case ND_LOGOR: {
-    int c = count();
+    long c = count();
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  jne .L.logor.t.%d\n", c); // 短絡評価
+    printf("  jne .L.logor.t.%ld\n", c); // 短絡評価
     gen(node->rhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  jne .L.logor.t.%d\n", c);
+    printf("  jne .L.logor.t.%ld\n", c);
     printf("  mov rax, 0\n");
-    printf("  jmp .L.logor.end.%d\n", c);
-    printf(".L.logor.t.%d:\n", c);
+    printf("  jmp .L.logor.end.%ld\n", c);
+    printf(".L.logor.t.%ld:\n", c);
     printf("  mov rax, 1\n");
-    printf(".L.logor.end.%d:\n", c);
+    printf(".L.logor.end.%ld:\n", c);
     printf("  push rax\n");
     return;
   }
   case ND_LOGAND: {
-    int c = count();
+    long c = count();
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .L.logand.f.%d\n", c); // 短絡評価
+    printf("  je .L.logand.f.%ld\n", c); // 短絡評価
     gen(node->rhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .L.logand.f.%d\n", c);
+    printf("  je .L.logand.f.%ld\n", c);
     printf("  mov rax, 1\n");
-    printf("  jmp .L.logand.end.%d\n", c);
-    printf(".L.logand.f.%d:\n", c);
+    printf("  jmp .L.logand.end.%ld\n", c);
+    printf(".L.logand.f.%ld:\n", c);
     printf("  mov rax, 0\n");
-    printf(".L.logand.end.%d:\n", c);
+    printf(".L.logand.end.%ld:\n", c);
     printf("  push rax\n");
     return;
   }
@@ -270,35 +264,35 @@ static void gen(Node *node) {
     return;
 
   case ND_IF: {
-    int c = count();
+    long c = count();
     gen(node->cond);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je  .L.else.%d\n", c);
+    printf("  je  .L.else.%ld\n", c);
     gen(node->then);
     printf("  pop rax\n");
-    printf("  jmp .L.end.%d\n", c);
-    printf(".L.else.%d:\n", c);
+    printf("  jmp .L.end.%ld\n", c);
+    printf(".L.else.%ld:\n", c);
     if (node->els){
       gen(node->els);
       printf("  pop rax\n");
     }
-    printf(".L.end.%d:\n", c);
+    printf(".L.end.%ld:\n", c);
     printf("  push rax\n");
     return;
   }
   case ND_LOOP: {
-    int c = count();
+    long c = count();
     if (node->init) {
       gen(node->init);
       printf("  pop rax\n");
     }
-    printf(".L.begin.%d:\n", c);
+    printf(".L.begin.%ld:\n", c);
     if (node->cond) {
       gen(node->cond);
       printf("  pop rax\n");
       printf("  cmp rax, 0\n");
-      printf("  je  .L.end.%d\n", c);
+      printf("  je  .L.end.%ld\n", c);
     }
     gen(node->then);
     printf("  pop rax\n");
@@ -306,19 +300,19 @@ static void gen(Node *node) {
       gen(node->inc);
       printf("  pop rax\n");
     }
-    printf("  jmp .L.begin.%d\n", c);
-    printf(".L.end.%d:\n", c);
+    printf("  jmp .L.begin.%ld\n", c);
+    printf(".L.end.%ld:\n", c);
     printf("  push rax\n");
     return;
   }
   case ND_FUNCALL: {
-    int nargs = 0;
+    long nargs = 0;
     for (Node *arg = node->args; arg; arg = arg->next) {
       gen(arg);
       nargs++;
     }
 
-    for (int i = nargs - 1; i >= 0; i--)
+    for (long i = nargs - 1; i >= 0; i--)
       printf("  pop %s\n", argreg[i]);
     printf("  mov rax, 0\n");
     printf("  call %s\n", node->funcname);
@@ -381,27 +375,6 @@ static void gen(Node *node) {
   printf("  push rax\n");
 }
 
-// ローカル変数にオフセット割り当て
-static void assign_lvar_offsets(Function *funcs) {
-  for (Function *fn = funcs; fn; fn = fn->next) {
-    int offset = 0;
-    for (LVar *lvar = fn->locals; lvar; lvar = lvar->next) {
-      offset += lvar->ty->size;
-      if(lvar->ty->size == 0)
-        fprintf(stderr, "size==0???\n");
-      lvar->offset = offset;
-    }
-    fn->stack_size = align_to(offset, 16); // stack_sizeを16の倍数にする(RSPを16の倍数にしなければならないらしい)
-  }
-}
-
-// 文字列リテラルに番号を振り分ける
-static void assign_string_literal_num() {
-  int number = 0;
-  for (Str *str = strings; str; str = str->next)
-    str->num = number++;
-}
-
 void codegen(Program *prog) {
   assign_lvar_offsets(prog->funcs);
   assign_string_literal_num();
@@ -428,9 +401,9 @@ void codegen(Program *prog) {
             printf("  .quad ");
 
           if (n->kind == ND_NUM)
-            printf("%d\n", n->val);
+            printf("%ld\n", n->val);
           else if (n->kind == ND_STR)
-            printf(".LC%d\n", n->string->num);
+            printf(".LC%ld\n", n->string->num);
         }
       } else { // 配列以外の初期化
         if (gvar->ty->kind == TY_INT)
@@ -441,17 +414,17 @@ void codegen(Program *prog) {
           printf("  .quad ");
 
         if (gvar_init->kind == ND_NUM)
-          printf("%d\n", gvar_init->val);
+          printf("%ld\n", gvar_init->val);
         else if (gvar_init->kind == ND_STR)
-          printf(".LC%d\n", gvar_init->string->num);
+          printf(".LC%ld\n", gvar_init->string->num);
       }
     } else {
-      printf("  .zero %d\n", gvar->ty->size);
+      printf("  .zero %ld\n", gvar->ty->size);
     }
   }
   for (Str *str = strings; str; str = str->next) {
     // 文字列リテラルを配置
-    printf(".LC%d:\n", str->num);
+    printf(".LC%ld:\n", str->num);
     printf("  .string %s\n", str->literal);
   }
 
@@ -466,13 +439,13 @@ void codegen(Program *prog) {
     // 使用した変数分の領域を確保する
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", fn->stack_size);
+    printf("  sub rsp, %ld\n", fn->stack_size);
 
     // レジスタによって渡された引数をスタックに保存する
-    int i = 0;
+    long i = 0;
     for (LVar *lvar = fn->params; lvar; lvar = lvar->next) {
       printf("  mov rax, rbp\n");
-      printf("  sub rax, %d\n", lvar->offset);
+      printf("  sub rax, %ld\n", lvar->offset);
       printf("  mov [rax], %s\n", argreg[i++]);
     }
 

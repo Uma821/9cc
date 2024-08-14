@@ -3,7 +3,8 @@
 LVar *locals;
 GVar *globals;
 Str *strings;
-Struct *structs;
+Struct *struct_defs;
+Struct *struct_decls;
 Function *functions;
 Function *prototypes;
 
@@ -19,12 +20,6 @@ static char *strndup(const char *s, size_t n) {
 	memcpy(d, s, l);
 	d[l] = 0;
 	return d;
-}
-
-// 'n'を'align'の最も近い倍数に切り上げる。
-// align_to(5, 8) == 8, align_to(11, 8) == 16.
-static int align_to(int n, int align) {
-  return (n + align - 1) / align * align;
 }
 
 // static Struct *reverse_struct(Struct* head) {
@@ -45,7 +40,11 @@ static int align_to(int n, int align) {
 
 // 構造体のリストから指定したタグ名に合う構造体を見つける
 static Type *find_struct(char *ident) {
-  for (Struct *_struct = structs; _struct; _struct = _struct->next) {
+  for (Struct *_struct = struct_defs; _struct; _struct = _struct->next) {
+    if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
+      return _struct->decl;
+  }
+  for (Struct *_struct = struct_decls; _struct; _struct = _struct->next) {
     if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
       return _struct->decl;
   }
@@ -87,7 +86,7 @@ static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
-static Node *new_node_num(int val) {
+static Node *new_node_num(long val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->val = val;
@@ -143,7 +142,7 @@ static void decay_arr(Node *node) {
 }
 
 // static void integer_promotion(Node *lhs, Node *rhs) {
-//   // オペランドの型をintに揃える
+//   // オペランドの型をlongに揃える
 //   if(is_integer(lhs->ty))
 //     lhs->ty->kind = TY_INT;
 //   if(is_integer(rhs->ty))
@@ -204,7 +203,7 @@ static char *get_ident() {
   return strndup(tok->str, tok->len);
 }
 
-// decl_basictype = ("int" | "char" | "void" | "struct" ident)
+// decl_basictype = ("int" | "char" | "long" | "void" | "struct" ident)
 // 変数宣言のことも考慮して別の関数に振り分けた
 static Type *decl_basictype() {
   if (consume_keyword("struct"))
@@ -213,14 +212,16 @@ static Type *decl_basictype() {
     return new_type(TY_INT);
   if (consume_keyword("char"))
     return new_type(TY_CHAR);
+  if (consume_keyword("long"))
+    return new_type(TY_INT);
   if (!consume_keyword("void"))
     error_at(token->str, "型名が必要");
   return new_type(TY_VOID);
 }
 
-// equal_basictype = ("int" | "char" | "void" | "struct")
-static int equal_basictype() {
-  return equal_keyword("int") || equal_keyword("char") || equal_keyword("void") || equal_keyword("struct");
+// equal_basictype = ("int" | "char" | "long" | "void" | "struct")
+static long equal_basictype() {
+  return equal_keyword("int") || equal_keyword("char") || equal_keyword("long") || equal_keyword("void") || equal_keyword("struct");
 }
 
 static Type *declarator(Type *ty);
@@ -328,7 +329,7 @@ static Node *declaration() {
     if (consume("=")) {
       if (lvar->ty->kind == TY_ARRAY) { // 配列に対する初期化
         if (consume("{")) { // 初期化子リスト
-          int param_cnt = 0;
+          long param_cnt = 0;
           Node *lhs = new_node_lvar(lvar, ty->tok);
 
           while (!consume("}")) {
@@ -346,7 +347,7 @@ static Node *declaration() {
         } else { // 文字列リテラル
           Token *tok = consume_str();
           if (tok) {
-            int param_cnt = 0;
+            long param_cnt = 0;
             Node *lhs = new_node_lvar(lvar, ty->tok);
 
             for(char *ptr = tok->str+1;param_cnt<tok->len-2 && param_cnt<lvar->ty->array_size;++ptr) {
@@ -377,7 +378,7 @@ static Node *declaration() {
   return node;
 }
 // gvar_declaration = decl_basictype (declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))? ("," declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))?)*)? ";"
-static int gvar_declaration() {
+static long gvar_declaration() {
   Type *basety = decl_basictype();
 
   while (!consume(";")) {
@@ -391,7 +392,7 @@ static int gvar_declaration() {
         if (consume("{")) { // 初期化子リスト
           Node head = {};
           Node *cur = &head;
-          int param_cnt = 0;
+          long param_cnt = 0;
 
           while (!consume("}")) {
             if (param_cnt<gvar->ty->array_size) // 配列の要素数を超えた
@@ -415,7 +416,7 @@ static int gvar_declaration() {
 
             Str *string = new_str(tok);
             cur = cur->next = new_node_str(string, tok);
-            int param_cnt = string->ty->array_size;
+            long param_cnt = string->ty->array_size;
 
             while (param_cnt<gvar->ty->array_size) { // 残りの要素は0で初期化
               cur = cur->next = new_node_num(0);
@@ -452,8 +453,8 @@ static int gvar_declaration() {
 
 // 構造体にオフセット割り当て
 static void assign_struct_offsets(Struct *_struct) {
-  int offset = 0;
-  int struct_align = 0;
+  long offset = 0;
+  long struct_align = 0;
 
   for(MStruct *member = _struct->decl->member; member; member = member->next) {
     if (!member->ty->align)
@@ -470,30 +471,36 @@ static void assign_struct_offsets(Struct *_struct) {
 }
 
 // struct_declaration = "struct" ident "{" (decl_basictype declarator ";")* "}" ";"
-static int struct_declaration() {
+static long struct_declaration() {
   if (!consume_keyword("struct")) {
     return false;
   }
   char *name = get_ident();
   Struct *_struct = new_struct(name);
-  if(!consume("{"))
-    return false;
-  MStruct head = {};
-  MStruct *cur = &head;
+  if(consume("{")) {
+    MStruct head = {};
+    MStruct *cur = &head;
 
-  while (!consume("}")) {
-    Type *basety = decl_basictype();
-    Type *ty = declarator(basety);
+    while (!consume("}")) {
+      Type *basety = decl_basictype();
+      Type *ty = declarator(basety);
+      expect(";");
+      cur = cur->next = new_mstruct(ty->name, ty);
+    }
+    _struct->decl->member = head.next;
+    _struct->next = struct_defs;
+    struct_defs = _struct;
+    assign_struct_offsets(_struct);
     expect(";");
-    cur = cur->next = new_mstruct(ty->name, ty);
-  }
-  _struct->decl->member = head.next;
-  _struct->next = structs;
-  structs = _struct;
-  assign_struct_offsets(_struct);
-  expect(";");
 
-  return true;
+    return true;
+  } else {
+    if(!consume(";"))
+      return false;
+    _struct->next = struct_decls;
+    struct_decls = _struct;
+    return true;
+  }
 }
 
 static void create_param_lvars(Type *param) {

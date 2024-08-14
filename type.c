@@ -17,7 +17,7 @@ Type *func_type(Type *return_ty) {
   return ty;
 }
 
-int is_integer(Type *ty) {
+long is_integer(Type *ty) {
   return ty->kind == TY_INT || ty->kind == TY_CHAR || ty->kind == TY_VOID;
 }
 
@@ -41,6 +41,13 @@ Type *array_of(Type *elem, size_t array_size) {
   ty->array_size = array_size; // 要素数
   ty->elem = elem;
   return ty;
+}
+
+long get_type_size(Type *ty) {
+  return ty->size;
+}
+Str *get_strings() {
+  return strings;
 }
 
 static Function* find_function(char *funcname) {

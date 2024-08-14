@@ -37,17 +37,17 @@ void error_at(char *loc, char *msg, ...) {
     end++;
 
   // 見つかった行が全体の何行目なのかを調べる
-  int line_num = 1;
+  long line_num = 1;
   for (char *p = user_input; p < line; p++)
     if (*p == '\n')
       line_num++;
 
   // 見つかった行を、ファイル名と行番号と一緒に表示
-  int indent = fprintf(stderr, "%s:%d: ", filename, line_num);
-  fprintf(stderr, "%.*s\n", (int)(end - line), line);
+  long indent = fprintf(stderr, "%s:%ld: ", filename, line_num);
+  fprintf(stderr, "%.*s\n", (long)(end - line), line);
 
   // エラー箇所を"^"で指し示して、エラーメッセージを表示
-  int pos = loc - line + indent;
+  long pos = loc - line + indent;
   fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
   fprintf(stderr, "^ ");
   vfprintf(stderr, msg, ap);
@@ -57,7 +57,7 @@ void error_at(char *loc, char *msg, ...) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-int consume(char *op) {
+long consume(char *op) {
   if (token->kind != TK_RESERVED ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -66,7 +66,7 @@ int consume(char *op) {
   return true;
 }
 
-int consume_keyword(char *op) {
+long consume_keyword(char *op) {
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -75,7 +75,7 @@ int consume_keyword(char *op) {
   return true;
 }
 
-int equal_keyword(char *op) {
+long equal_keyword(char *op) {
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -95,15 +95,15 @@ void expect(char *op) {
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number() {
+long expect_number() {
   if (token->kind != TK_NUM)
     error_at(token->str, "数ではありません");
-  int val = token->val;
+  long val = token->val;
   token = token->next;
   return val;
 }
 
-int at_block() {
+long at_block() {
   if (token->kind != TK_RESERVED ||
       token->len != 1 ||
       token->str[0] != '{')
@@ -111,7 +111,7 @@ int at_block() {
   return true;
 }
 
-int at_eof() {
+long at_eof() {
   return token->kind == TK_EOF;
 }
 
@@ -132,7 +132,7 @@ Token *consume_str() {
 }
 
 // 新しいトークンを作成してcurに繋げる
-static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
+static Token *new_token(TokenKind kind, Token *cur, char *str, long len) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->str = str;
@@ -141,29 +141,29 @@ static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
-static int startswith(char *p, char *q) {
+static long startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
-static int isdoublequote(char c) {
+static long isdoublequote(char c) {
   return c == '"';
 }
-static int isescapedoublequote(char *p) {
+static long isescapedoublequote(char *p) {
   return startswith(p, "\\\"");
 }
 
 // cが識別子の最初の文字として有効な場合、trueを返す
-static int is_ident1(char c) {
+static long is_ident1(char c) {
   return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
 // cが識別子の2番目以降の文字として有効な場合、trueを返す
-static int is_ident2(char c) {
+static long is_ident2(char c) {
   return is_ident1(c) || ('0' <= c && c <= '9');
 }
 
 // pから区切子を読み取り、その長さを返す
-static int read_punct(char *p) {
+static long read_punct(char *p) {
   if (startswith(p, "+=") || startswith(p, "-=") ||
       startswith(p, "*=") || startswith(p, "/=") ||
       startswith(p, "%=") || startswith(p, "&=") ||
@@ -178,7 +178,7 @@ static int read_punct(char *p) {
   return ispunct(*p) ? 1 : 0;
 }
 
-static int is_alnum(char c) {
+static long is_alnum(char c) {
   return ('a' <= c && c <= 'z') ||
          ('A' <= c && c <= 'Z') ||
          ('0' <= c && c <= '9') ||
@@ -186,10 +186,10 @@ static int is_alnum(char c) {
 }
 
 // キーワードかどうかを調べる。
-static int is_keyword(const char * const p) {
+static long is_keyword(const char * const p) {
   static char const * const kws[] = {
-    "if", "else", "for", "while", "return", "int", "char", "void", "sizeof", "struct", "_Alignof", "offsetof", "__builtin_offsetof"};
-  for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
+    "if", "else", "for", "while", "return", "int", "char", "long", "void", "sizeof", "struct", "_Alignof", "offsetof", "__builtin_offsetof"};
+  for (long i = 0; i < sizeof(kws) / sizeof(*kws); i++)
     if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
       return strlen(kws[i]);
   return 0;
@@ -248,7 +248,7 @@ void tokenize() {
     }
 
     // キーワード
-    int key_len;
+    long key_len;
     if ((key_len = is_keyword(p))) {
       cur = new_token(TK_KEYWORD, cur, p, key_len);
       p += key_len;
@@ -266,7 +266,7 @@ void tokenize() {
     }
 
     // 区切子
-    int punct_len = read_punct(p);
+    long punct_len = read_punct(p);
     if (punct_len) {
       cur = new_token(TK_RESERVED, cur, p, punct_len);
       p += cur->len;
