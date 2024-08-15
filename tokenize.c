@@ -54,28 +54,33 @@ void error_at(char *loc, char *msg, ...) {
   fprintf(stderr, "\n");
   exit(1); 
 }
+struct Token *get_token();
+void set_token(struct Token *token);
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 long consume(char *op) {
+  struct Token *token = get_token();
   if (token->kind != TK_RESERVED ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
     return false;
-  token = token->next;
+  set_token(token->next);
   return true;
 }
 
 long consume_keyword(char *op) {
+  struct Token *token = get_token();
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
     return false;
-  token = token->next;
+  set_token(token->next);
   return true;
 }
 
 long equal_keyword(char *op) {
+  struct Token *token = get_token();
   if (token->kind != TK_KEYWORD ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
@@ -86,48 +91,54 @@ long equal_keyword(char *op) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
+  struct Token *token = get_token();
   if (token->kind != TK_RESERVED ||
       strlen(op) != token->len ||
       memcmp(token->str, op, token->len))
     error_at(token->str, "\"%s\"ではありません", op);
-  token = token->next;
+  set_token(token->next);
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
 long expect_number() {
+  struct Token *token = get_token();
   if (token->kind != TK_NUM)
     error_at(token->str, "数ではありません");
   long val = token->val;
-  token = token->next;
+  set_token(token->next);
   return val;
 }
 
 long at_block() {
+  struct Token *token = get_token();
   if (token->kind != TK_RESERVED ||
       token->len != 1 ||
-      token->str[0] != '{')
+      token->str[0] != "{"[0])
     return false;
   return true;
 }
 
 long at_eof() {
+  struct Token *token = get_token();
   return token->kind == TK_EOF;
 }
 
 struct Token *consume_ident() {
+  struct Token *token = get_token();
   if (token->kind != TK_IDENT)
     return NULL;
   struct Token *tok = token;
-  token = token->next;
+  set_token(token->next);
   return tok;
 }
 
 struct Token *consume_str() {
+  struct Token *token = get_token();
   if (token->kind != TK_STR)
     return NULL;
   struct Token *tok = token;
-  token = token->next;
+  set_token(token->next);
   return tok;
 }
 

@@ -49,6 +49,16 @@ long get_type_size(struct Type *ty) {
 struct Str *get_strings() {
   return strings;
 }
+struct GVar *get_globals() {
+  return globals;
+}
+struct Token *get_token() {
+  return token;
+}
+void set_token(struct Token *t) {
+  token = t;
+  return;
+}
 
 static struct Function* find_function(char *funcname) {
   for (struct Function *fn = functions; fn; fn = fn->next) {
