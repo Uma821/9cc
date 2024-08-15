@@ -185,13 +185,13 @@ static long is_alnum(char c) {
          (c == '_');
 }
 
+char const * const tokenize_gloval_keywords[] = {
+  "if", "else", "for", "while", "return", "int", "char", "long", "void", "sizeof", "struct", "enum", "_Alignof", "offsetof", "__builtin_offsetof"};
 // キーワードかどうかを調べる。
 static long is_keyword(const char * const p) {
-  static char const * const kws[] = {
-    "if", "else", "for", "while", "return", "int", "char", "long", "void", "sizeof", "struct", "enum", "_Alignof", "offsetof", "__builtin_offsetof"};
-  for (long i = 0; i < sizeof(kws) / sizeof(*kws); i++)
-    if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
-      return strlen(kws[i]);
+  for (long i = 0; i < sizeof(tokenize_gloval_keywords) / sizeof(*tokenize_gloval_keywords); i++)
+    if (strncmp(p, tokenize_gloval_keywords[i], strlen(tokenize_gloval_keywords[i])) == 0 && !is_alnum(p[strlen(tokenize_gloval_keywords[i])]))
+      return strlen(tokenize_gloval_keywords[i]);
   return 0;
 }
 

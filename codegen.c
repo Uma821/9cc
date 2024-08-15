@@ -5,9 +5,9 @@ static struct Function *current_fn;
 
 static void gen();
 
+long codegen_global_count = 1;
 static long count(void) {
-  static long i = 1;
-  return i++;
+  return codegen_global_count++;
 }
 
 static void gen_variable(struct Node *node) {
