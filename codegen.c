@@ -1,7 +1,7 @@
 #include "9cc.h"
 
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-static Function *current_fn;
+static struct Function *current_fn;
 
 static void gen();
 
@@ -10,7 +10,7 @@ static long count(void) {
   return i++;
 }
 
-static void gen_variable(Node *node) {
+static void gen_variable(struct Node *node) {
   if (node->kind == ND_LVAR) {
     printf("  mov rax, rbp\n");
     printf("  sub rax, %ld\n", node->lvar->offset);
@@ -28,9 +28,9 @@ static void gen_variable(Node *node) {
   
 }
 
-static void gen(Node *node) {
+static void gen(struct Node *node) {
   if (node->kind == ND_NUM) {
-    printf("  push %d\n", node->val);
+    printf("  push %ld\n", node->val);
     return;
   } else if (node->kind == ND_STR) {
     printf("  push offset .LC%ld\n", node->string->num);
@@ -246,7 +246,7 @@ static void gen(Node *node) {
     }
     return;
   } else if (node->kind == ND_BLOCK) {
-    for (Node *n = node->body; n; n = n->next) {
+    for (struct Node *n = node->body; n; n = n->next) {
       gen(n);
       printf("  pop rax\n");
     }
@@ -301,7 +301,7 @@ static void gen(Node *node) {
     return;
   } else if (node->kind == ND_FUNCALL) {
     long nargs = 0;
-    for (Node *arg = node->args; arg; arg = arg->next) {
+    for (struct Node *arg = node->args; arg; arg = arg->next) {
       gen(arg);
       nargs++;
     }
@@ -354,19 +354,19 @@ static void gen(Node *node) {
   printf("  push rax\n");
 }
 
-void codegen(Program *prog) {
+void codegen(struct Program *prog) {
   assign_lvar_offsets(prog->funcs);
   assign_string_literal_num();
   printf(".intel_syntax noprefix\n");
 
   printf(".data\n");
-  for (GVar *gvar = globals; gvar; gvar = gvar->next) {
+  for (struct GVar *gvar = globals; gvar; gvar = gvar->next) {
     // グローバル変数を定義
     printf("%s:\n", gvar->name);
-    Node *gvar_init = gvar->init;
+    struct Node *gvar_init = gvar->init;
     if (gvar_init) {
       if (gvar_init->kind == ND_BLOCK) { // 配列
-        for (Node *n = gvar_init->body; n; n = n->next) {
+        for (struct Node *n = gvar_init->body; n; n = n->next) {
           if (n->kind == ND_STR && n->ty->kind == TY_ARRAY) { // 文字列リテラル
             printf("  .string %s\n", n->string->literal);
             continue;
@@ -401,14 +401,14 @@ void codegen(Program *prog) {
       printf("  .zero %ld\n", gvar->ty->size);
     }
   }
-  for (Str *str = strings; str; str = str->next) {
+  for (struct Str *str = strings; str; str = str->next) {
     // 文字列リテラルを配置
     printf(".LC%ld:\n", str->num);
     printf("  .string %s\n", str->literal);
   }
 
   printf(".text\n");
-  for (Function *fn = prog->funcs; fn; fn = fn->next) {
+  for (struct Function *fn = prog->funcs; fn; fn = fn->next) {
     // アセンブリの前半部分を出力
     printf(".globl %s\n", fn->name);
     printf("%s:\n", fn->name);
@@ -422,7 +422,7 @@ void codegen(Program *prog) {
 
     // レジスタによって渡された引数をスタックに保存する
     long i = 0;
-    for (LVar *lvar = fn->params; lvar; lvar = lvar->next) {
+    for (struct LVar *lvar = fn->params; lvar; lvar = lvar->next) {
       printf("  mov rax, rbp\n");
       printf("  sub rax, %ld\n", lvar->offset);
       printf("  mov [rax], %s\n", argreg[i++]);

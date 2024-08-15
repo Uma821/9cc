@@ -6,7 +6,7 @@ char *user_input;
 char *filename;
 
 // 現在着目しているトークン
-Token *token;
+struct Token *token;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -115,25 +115,25 @@ long at_eof() {
   return token->kind == TK_EOF;
 }
 
-Token *consume_ident() {
+struct Token *consume_ident() {
   if (token->kind != TK_IDENT)
     return NULL;
-  Token *tok = token;
+  struct Token *tok = token;
   token = token->next;
   return tok;
 }
 
-Token *consume_str() {
+struct Token *consume_str() {
   if (token->kind != TK_STR)
     return NULL;
-  Token *tok = token;
+  struct Token *tok = token;
   token = token->next;
   return tok;
 }
 
 // 新しいトークンを作成してcurに繋げる
-static Token *new_token(long /*TokenKind*/ kind, Token *cur, char *str, long len) {
-  Token *tok = calloc(1, sizeof(Token));
+static struct Token *new_token(long /*TokenKind*/ kind, struct Token *cur, char *str, long len) {
+  struct Token *tok = calloc(1, sizeof(struct Token));
   tok->kind = kind;
   tok->str = str;
   tok->len = len;
@@ -198,9 +198,9 @@ static long is_keyword(const char * const p) {
 // 入力文字列user_inputをトークナイズしてそれを返す
 void tokenize() {
   char *p = user_input;
-  Token head;
+  struct Token head;
   head.next = NULL;
-  Token *cur = &head;
+  struct Token *cur = &head;
 
   while (*p) {
     // 空白文字をスキップ

@@ -5,8 +5,8 @@
 #define true 1
 #define false 0
 
-typedef struct Type Type;
-typedef struct Node Node;
+// typedef struct Type Type;
+// typedef struct Node Node;
 
 // errno.h プロトタイプ宣言
 long *__errno_location(void);
@@ -30,10 +30,10 @@ int isdigit(int c);
 } /*TokenKind*/;
 
 // トークン型
-typedef struct Token Token;
+// typedef struct Token Token;
 struct Token {
   long /*TokenKind*/ kind; // トークンの型
-  Token *next;    // 次の入力トークン
+  struct Token *next;    // 次の入力トークン
   long val;        // kindがTK_NUMの場合、その数値
   char *str;      // トークン文字列
   long len;        // トークンの長さ
@@ -45,7 +45,7 @@ extern char *user_input;
 extern char *filename;
 
 // 現在着目しているトークン
-extern Token *token;
+extern struct Token *token;
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
@@ -56,8 +56,8 @@ void expect(char *op);
 long expect_number();
 long at_eof();
 long at_block();
-Token *consume_ident();
-Token *consume_str();
+struct Token *consume_ident();
+struct Token *consume_str();
 void tokenize();
 
 //
@@ -65,61 +65,61 @@ void tokenize();
 //
 
 // ローカル変数の型
-typedef struct LVar LVar;
+// typedef struct LVar LVar;
 struct LVar {
-  LVar *next; // 次の変数かNULL
+  struct LVar *next; // 次の変数かNULL
   char *name; // 変数の名前
-  Type *ty;   // Type
+  struct Type *ty;   // Type
   long len;    // 名前の長さ
   long offset; // RBPからのオフセット
 };
 
 // ローカル変数
-extern LVar *locals;
+extern struct LVar *locals;
 
 // グローバル変数の型
-typedef struct GVar GVar;
+// typedef struct GVar GVar;
 struct GVar {
-  GVar *next; // 次の変数かNULL
+  struct GVar *next; // 次の変数かNULL
   char *name; // 変数の名前
-  Type *ty;   // Type
+  struct Type *ty;   // Type
   long len;    // 名前の長さ
-  Node *init; // 初期化式
+  struct Node *init; // 初期化式
 };
 
 // グローバル変数
-extern GVar *globals;
+extern struct GVar *globals;
 
 // 文字列リテラルを管理する型
-typedef struct Str Str;
+// typedef struct Str Str;
 struct Str {
-  Str *next; // 次の変数かNULL
+  struct Str *next; // 次の変数かNULL
   char *literal; // 文字列リテラル
-  Type *ty; // Type
+  struct Type *ty; // Type
   long num; // 何番目の文字列リテラルか
 };
 
 // 文字列リテラル
-extern Str *strings;
+extern struct Str *strings;
 
-typedef struct Struct Struct;
-typedef struct MStruct MStruct;
+// typedef struct Struct Struct;
+// typedef struct MStruct MStruct;
 // structの線形リスト(実装はType内に)
 struct Struct {
-  Struct *next;  // 次の構造体かNULL
-  Type *decl;    // 宣言
+  struct Struct *next;  // 次の構造体かNULL
+  struct Type *decl;    // 宣言
 };
 // structのメンバ
 struct MStruct {
-  MStruct *next; // 次の構造体かNULL
+  struct MStruct *next; // 次の構造体かNULL
   char *name;    // メンバの名前
-  Type *ty;      // Type
+  struct Type *ty;      // Type
   long len;       // 名前の長さ
   long offset;    // 構造体の先頭アドレスからのオフセット
 };
 
 // ローカル変数
-extern Struct *Structs;
+extern struct Struct *Structs;
 
 // 抽象構文木のノードの種類
 /*typedef*/ enum {
@@ -153,49 +153,49 @@ extern Struct *Structs;
   ND_STR,     // 文字列リテラル
 } /*NodeKind*/;
 
-typedef struct Node Node;
+// typedef struct Node Node;
 
 // 抽象構文木のノードの型
 struct Node {
   long /*NodeKind*/ kind;  // ノードの型
-  Node *next;     // 次のノード
-  Token *tok;     // このノードのトークン
-  Type *ty;       // そのノードのタイプ,longやlongへのポインタなど
-  Node *lhs;      // 左辺
-  Node *rhs;      // 右辺
+  struct Node *next;     // 次のノード
+  struct Token *tok;     // このノードのトークン
+  struct Type *ty;       // そのノードのタイプ,longやlongへのポインタなど
+  struct Node *lhs;      // 左辺
+  struct Node *rhs;      // 右辺
   long val;        // kindがND_NUMの場合のみ使う
-  Str *string;    // kindがND_STRの場合のみ使う
-  LVar *lvar;     // kindがND_LVARの場合のみ使う
-  GVar *gvar;     // kindがND_GVARの場合のみ使う
-  Node *cond;     // kindがND_IF,ND_LOOPの場合のみ使う
-  Node *then;     // kindがND_IF,ND_LOOPの場合のみ使う
-  Node *els;      // kindがND_IFの場合のみ使う
-  Node *init;     // kindがND_LOOPの場合のみ使う
-  Node *inc;      // kindがND_LOOPの場合のみ使う
-  Node *body;     // kindがND_BLOCK(複文)の場合のみ使う
+  struct Str *string;    // kindがND_STRの場合のみ使う
+  struct LVar *lvar;     // kindがND_LVARの場合のみ使う
+  struct GVar *gvar;     // kindがND_GVARの場合のみ使う
+  struct Node *cond;     // kindがND_IF,ND_LOOPの場合のみ使う
+  struct Node *then;     // kindがND_IF,ND_LOOPの場合のみ使う
+  struct Node *els;      // kindがND_IFの場合のみ使う
+  struct Node *init;     // kindがND_LOOPの場合のみ使う
+  struct Node *inc;      // kindがND_LOOPの場合のみ使う
+  struct Node *body;     // kindがND_BLOCK(複文)の場合のみ使う
   char *funcname; // kindがND_FUNCALLの場合のみ使う
-  Node *args;     // kindがND_FUNCALLの場合のみ使う
+  struct Node *args;     // kindがND_FUNCALLの場合のみ使う
 };
 
 // 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
-typedef struct Function Function;
+// typedef struct Function Function;
 struct Function {
-  Function *next;
+  struct Function *next;
   char *name;
-  LVar *params;
+  struct LVar *params;
 
-  Node *body;
-  LVar *locals;
-  Type *ret_ty;
+  struct Node *body;
+  struct LVar *locals;
+  struct Type *ret_ty;
   long stack_size;
 };
 
 // Enum中に出てきた識別子を覚えておく型
-typedef struct Enum Enum;
+// typedef struct Enum Enum;
 struct Enum {
-  Enum *next; // 次の変数かNULL
+  struct Enum *next; // 次の変数かNULL
   char *name; // 識別子の名前
-  Node *node; // 値定義
+  struct Node *node; // 値定義
 };
 
 // codegen_helper.c
@@ -204,16 +204,16 @@ void assign_lvar_offsets(struct Function *funcs);
 void assign_string_literal_num();
 
 // 関数
-extern Function *functions;
-extern Function *prototypes;
+extern struct Function *functions;
+extern struct Function *prototypes;
 
 // 関数毎に内容、ローカル変数、ローカル変数用のスタックサイズの保存
-typedef struct Program Program;
+// typedef struct Program Program;
 struct Program {
-  Function *funcs;
+  struct Function *funcs;
 };
 
-Program *parse();
+struct Program *parse();
 
 //
 // type.c
@@ -234,31 +234,31 @@ struct Type {
   long size;           // sizeof
   long align;          // alignof
  
-  Type *base;         // 〇へのポインタ
+  struct Type *base;         // 〇へのポインタ
   size_t array_size;  // 配列
-  Type *elem;         // 配列
+  struct Type *elem;         // 配列
   long decayed;        // 配列->ポインタへの降格発生時のフラグ
   char *name;         // 定義
-  Token *tok;         // 変数の位置情報など
+  struct Token *tok;         // 変数の位置情報など
   // 関数
-  Type *return_ty;
-  Type *params;
-  Type *next;
+  struct Type *return_ty;
+  struct Type *params;
+  struct Type *next;
   // 構造体
   char *tag_name;   // 構造体の名前
   long tag_len;      // 構造体の名前の長さ
-  MStruct *member;  // メンバへのポインタ
+  struct MStruct *member;  // メンバへのポインタ
 };
 
-Type *new_type(long /*TypeKind*/ kind);
-Type *func_type(Type *return_ty);
-long is_integer(Type *ty);
-Type *pointer_to(Type *base);
-Type *array_of(Type *elem, size_t size);
-void add_type(Node *node);
+struct Type *new_type(long /*TypeKind*/ kind);
+struct Type *func_type(struct Type *return_ty);
+long is_integer(struct Type *ty);
+struct Type *pointer_to(struct Type *base);
+struct Type *array_of(struct Type *elem, size_t size);
+void add_type(struct Node *node);
 
 //
 // codegen.c
 //
 
-void codegen(Program *prog);
+void codegen(struct Program *prog);

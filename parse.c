@@ -1,13 +1,13 @@
 #include "9cc.h"
 
-LVar *locals;
-GVar *globals;
-Str *strings;
-Struct *struct_defs;
-Struct *struct_decls;
-Function *functions;
-Function *prototypes;
-Enum *enums;
+struct LVar *locals;
+struct GVar *globals;
+struct Str *strings;
+struct Struct *struct_defs;
+struct Struct *struct_decls;
+struct Function *functions;
+struct Function *prototypes;
+struct Enum *enums;
 
 static size_t strnlen(const char *s, size_t n) {
 	const char *p = memchr(s, 0, n);
@@ -23,10 +23,10 @@ static char *strndup(const char *s, size_t n) {
 	return d;
 }
 
-// static Struct *reverse_struct(Struct* head) {
-//   Struct *prev = NULL;
-//   Struct *current = head;
-//   Struct *next = NULL;
+// static struct Struct *reverse_struct(struct Struct* head) {
+//   struct Struct *prev = NULL;
+//   struct Struct *current = head;
+//   struct Struct *next = NULL;
 
 //   while (current != NULL) {
 //     next = current->next; // 次のノードを保存
@@ -40,12 +40,12 @@ static char *strndup(const char *s, size_t n) {
 // }
 
 // 構造体のリストから指定したタグ名に合う構造体を見つける
-static Type *find_struct(char *ident) {
-  for (Struct *_struct = struct_defs; _struct; _struct = _struct->next) {
+static struct Type *find_struct(char *ident) {
+  for (struct Struct *_struct = struct_defs; _struct; _struct = _struct->next) {
     if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
       return _struct->decl;
   }
-  for (Struct *_struct = struct_decls; _struct; _struct = _struct->next) {
+  for (struct Struct *_struct = struct_decls; _struct; _struct = _struct->next) {
     if (!strncmp(ident, _struct->decl->tag_name, _struct->decl->tag_len))
       return _struct->decl;
   }
@@ -54,8 +54,8 @@ static Type *find_struct(char *ident) {
 }
 
 // 構造体のメンバ群から指定したメンバを探す
-static MStruct *find_member(Type *struct_ty, char *ident) {
-  for (MStruct *mem = struct_ty->member; mem; mem = mem->next) {
+static struct MStruct *find_member(struct Type *struct_ty, char *ident) {
+  for (struct MStruct *mem = struct_ty->member; mem; mem = mem->next) {
     if (!strncmp(ident, mem->name, mem->len))
       return mem;
   }
@@ -63,30 +63,30 @@ static MStruct *find_member(Type *struct_ty, char *ident) {
   return NULL;
 }
 // enumによって定義された識別子について値を返す
-static Enum *find_enum(Token *tok) {
-  for (Enum *_enum = enums; _enum; _enum = _enum->next)
+static struct Enum *find_enum(struct Token *tok) {
+  for (struct Enum *_enum = enums; _enum; _enum = _enum->next)
     if (!memcmp(tok->str, _enum->name, tok->len))
       return _enum;
   return NULL;
 }
 
 // ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
-static LVar *find_lvar(Token *tok) {
-  for (LVar *var = locals; var; var = var->next)
+static struct LVar *find_lvar(struct Token *tok) {
+  for (struct LVar *var = locals; var; var = var->next)
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
   return NULL;
 }
 // グローバル変数を名前で検索する。見つからなかった場合はNULLを返す。
-static GVar *find_gvar(Token *tok) {
-  for (GVar *var = globals; var; var = var->next)
+static struct GVar *find_gvar(struct Token *tok) {
+  for (struct GVar *var = globals; var; var = var->next)
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
   return NULL;
 }
 
-static Node *new_node(long /*NodeKind*/ kind, Node *lhs, Node *rhs) {
-  Node *node = calloc(1, sizeof(Node));
+static struct Node *new_node(long /*NodeKind*/ kind, struct Node *lhs, struct Node *rhs) {
+  struct Node *node = calloc(1, sizeof(struct Node));
   node->kind = kind;
   node->lhs = lhs;
   node->rhs = rhs;
@@ -94,40 +94,40 @@ static Node *new_node(long /*NodeKind*/ kind, Node *lhs, Node *rhs) {
   return node;
 }
 
-static Node *new_node_num(long val) {
-  Node *node = calloc(1, sizeof(Node));
+static struct Node *new_node_num(long val) {
+  struct Node *node = calloc(1, sizeof(struct Node));
   node->kind = ND_NUM;
   node->val = val;
   node->tok = token;
   return node;
 }
 
-static Node *new_node_lvar(LVar *lvar, Token *tok) {
-  Node *node = calloc(1, sizeof(Node));
+static struct Node *new_node_lvar(struct LVar *lvar, struct Token *tok) {
+  struct Node *node = calloc(1, sizeof(struct Node));
   node->kind = ND_LVAR;
   node->lvar = lvar;
   node->tok = tok;
   return node;
 }
-static Node *new_node_gvar(GVar *gvar, Token *tok) {
-  Node *node = calloc(1, sizeof(Node));
+static struct Node *new_node_gvar(struct GVar *gvar, struct Token *tok) {
+  struct Node *node = calloc(1, sizeof(struct Node));
   node->kind = ND_GVAR;
   node->gvar = gvar;
   node->tok = tok;
   return node;
 }
 
-static Node *new_node_str(Str *str, Token *tok) {
-  Node *node = calloc(1, sizeof(Node));
+static struct Node *new_node_str(struct Str *str, struct Token *tok) {
+  struct Node *node = calloc(1, sizeof(struct Node));
   node->kind = ND_STR;
   node->string = str;
   node->tok = tok;
   return node;
 }
 
-static Type *arr_to_ptr(Type *ty) {
-  Type *new_type = calloc(1, sizeof(Type));
-  memcpy(new_type, ty, sizeof(Type));
+static struct Type *arr_to_ptr(struct Type *ty) {
+  struct Type *new_type = calloc(1, sizeof(struct Type));
+  memcpy(new_type, ty, sizeof(struct Type));
   new_type->kind = TY_PTR;
   new_type->size = 8;
   new_type->base = new_type->elem;
@@ -136,7 +136,7 @@ static Type *arr_to_ptr(Type *ty) {
   return new_type;
 }
 
-static void decay_arr(Node *node) {
+static void decay_arr(struct Node *node) {
   // nodeに対してまだ型が与えられていない or nodeの型が配列である配列型をポインタに降格させる
   // 配列のローカル変数に対する降格
   if ((!node->ty || node->ty->kind == TY_ARRAY) && node->kind == ND_LVAR && node->lvar->ty->kind == TY_ARRAY) // このオペランドの型が配列だったらポインタにする
@@ -149,7 +149,7 @@ static void decay_arr(Node *node) {
     node->ty = arr_to_ptr(node->string->ty);
 }
 
-// static void integer_promotion(Node *lhs, Node *rhs) {
+// static void integer_promotion(struct Node *lhs, struct Node *rhs) {
 //   // オペランドの型をlongに揃える
 //   if(is_integer(lhs->ty))
 //     lhs->ty->kind = TY_INT;
@@ -157,8 +157,8 @@ static void decay_arr(Node *node) {
 //     rhs->ty->kind = TY_INT;
 // }
 
-static LVar *new_lvar(char *name, Type *ty) {
-  LVar *lvar = calloc(1, sizeof(LVar));
+static struct LVar *new_lvar(char *name, struct Type *ty) {
+  struct LVar *lvar = calloc(1, sizeof(struct LVar));
   lvar->name = name;
   lvar->ty = ty;
   lvar->len = strlen(name);
@@ -166,8 +166,8 @@ static LVar *new_lvar(char *name, Type *ty) {
   locals = lvar;
   return lvar;
 }
-static GVar *new_gvar(char *name, Type *ty) {
-  GVar *gvar = calloc(1, sizeof(GVar));
+static struct GVar *new_gvar(char *name, struct Type *ty) {
+  struct GVar *gvar = calloc(1, sizeof(struct GVar));
   gvar->name = name;
   gvar->ty = ty;
   gvar->len = strlen(name);
@@ -175,32 +175,32 @@ static GVar *new_gvar(char *name, Type *ty) {
   globals = gvar;
   return gvar;
 }
-static MStruct *new_mstruct(char *name, Type *ty) {
-  MStruct *smem = calloc(1, sizeof(MStruct));
+static struct MStruct *new_mstruct(char *name, struct Type *ty) {
+  struct MStruct *smem = calloc(1, sizeof(struct MStruct));
   smem->name = name;
   smem->ty = ty;
   smem->len = strlen(name);
   return smem;
 }
-static Struct *new_struct(char *name) {
-  Struct *_struct = calloc(1, sizeof(Struct));
-  _struct->decl = calloc(1, sizeof(Type));
+static struct Struct *new_struct(char *name) {
+  struct Struct *_struct = calloc(1, sizeof(struct Struct));
+  _struct->decl = calloc(1, sizeof(struct Type));
   _struct->decl->kind = TY_STRUCT;
   _struct->decl->tag_name = name;
   _struct->decl->tag_len = strlen(name);
   return _struct;
 }
-static Enum *new_enum(char *name) {
-  Enum *_enum = calloc(1, sizeof(Enum));
+static struct Enum *new_enum(char *name) {
+  struct Enum *_enum = calloc(1, sizeof(struct Enum));
   _enum->name = name;
   return _enum;
 }
 
-static Str *new_str(Token *tok) {
-  Type *ty = array_of(new_type(TY_CHAR), tok->len-1);
+static struct Str *new_str(struct Token *tok) {
+  struct Type *ty = array_of(new_type(TY_CHAR), tok->len-1);
   ty->tok = tok;
 
-  Str *str = calloc(1, sizeof(Str));
+  struct Str *str = calloc(1, sizeof(struct Str));
   str->literal = strndup(tok->str, tok->len);
   str->ty = ty;
   str->next = strings;
@@ -211,14 +211,14 @@ static Str *new_str(Token *tok) {
 static char *get_ident() {
   if (token->kind != TK_IDENT)
     error_at(token->str, "識別子が必要");
-  Token *tok = token;
+  struct Token *tok = token;
   token = token->next;
   return strndup(tok->str, tok->len);
 }
 
 // decl_basictype = ("int" | "char" | "long" | "void" | "struct" ident)
 // 変数宣言のことも考慮して別の関数に振り分けた
-static Type *decl_basictype() {
+static struct Type *decl_basictype() {
   if (consume_keyword("struct"))
     return find_struct(get_ident());
   if (consume_keyword("int"))
@@ -237,37 +237,37 @@ static long equal_basictype() {
   return equal_keyword("int") || equal_keyword("char") || equal_keyword("long") || equal_keyword("void") || equal_keyword("struct");
 }
 
-static Type *declarator(Type *ty);
-Program *parse();
-static Function *function_definition();
-static Function *prototype_declaration();
-static Node *stmt();
-static Node *expr();
-static Node *assign();
-static Node *logor();
-static Node *logand();
-static Node *equality();
-static Node *relational();
-static Node *new_add(Node *, Node *);
-static Node *new_add_asgn(Node *, Node *);
-static Node *new_sub_asgn(Node *, Node *);
-static Node *add();
-static Node *mul();
-static Node *unary();
-static Node *postfix();
-static Node *primary();
+static struct Type *declarator(struct Type *ty);
+struct Program *parse();
+static struct Function *function_definition();
+static struct Function *prototype_declaration();
+static struct Node *stmt();
+static struct Node *expr();
+static struct Node *assign();
+static struct Node *logor();
+static struct Node *logand();
+static struct Node *equality();
+static struct Node *relational();
+static struct Node *new_add(struct Node *, struct Node *);
+static struct Node *new_add_asgn(struct Node *, struct Node *);
+static struct Node *new_sub_asgn(struct Node *, struct Node *);
+static struct Node *add();
+static struct Node *mul();
+static struct Node *unary();
+static struct Node *postfix();
+static struct Node *primary();
 
 // type-suffix = ("(" func-params? ")")
 // func-params = param ("," param)*
 // param       = declarator
-static Type *type_suffix(Type *ty) {
+static struct Type *type_suffix(struct Type *ty) {
   expect("(");
-  Type head = {};
-  Type *cur = &head;
+  struct Type head = {};
+  struct Type *cur = &head;
 
   while (!consume(")")) {
-    Type *basety = decl_basictype();
-    Type *ty = declarator(basety);
+    struct Type *basety = decl_basictype();
+    struct Type *ty = declarator(basety);
     cur = cur->next = ty;
     consume(",");
   }
@@ -279,11 +279,11 @@ static Type *type_suffix(Type *ty) {
 }
 
 // declarator = "*" * ident ( "[" number "]" )?
-static Type *declarator(Type *ty) { // 宣言子
+static struct Type *declarator(struct Type *ty) { // 宣言子
   while (consume("*"))
     ty = pointer_to(ty);
 
-  Token *tok_lval = token;
+  struct Token *tok_lval = token;
   char *name = get_ident();
   if (consume("(")) // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
     return NULL;
@@ -297,11 +297,11 @@ static Type *declarator(Type *ty) { // 宣言子
   return ty;
 }
 // declarator_except_ident = "*" * ( "[" number "]" )?
-static Type *declarator_except_ident(Type *ty) { // 識別子を覗いた宣言子
+static struct Type *declarator_except_ident(struct Type *ty) { // 識別子を覗いた宣言子
   while (consume("*"))
     ty = pointer_to(ty);
 
-  Token *tok_lval = token;
+  struct Token *tok_lval = token;
   if (consume("(")) // 宣言子の後ろに括弧が来たら関数定義、宣言として読み込み失敗
     return NULL;
   if (consume("[")) {
@@ -313,11 +313,11 @@ static Type *declarator_except_ident(Type *ty) { // 識別子を覗いた宣言�
   return ty;
 }
 // function_declarator = "*" * ident type-suffix
-static Type *function_declarator(Type *ty) { // 関数宣言子
+static struct Type *function_declarator(struct Type *ty) { // 関数宣言子
   while (consume("*"))
     ty = pointer_to(ty);
 
-  Token *tok_lval = token;
+  struct Token *tok_lval = token;
   char *name = get_ident();
 
   ty = type_suffix(ty); // 関数の宣言時の引数読み込み等
@@ -327,26 +327,26 @@ static Type *function_declarator(Type *ty) { // 関数宣言子
 }
 
 // declaration = decl_basictype (declarator ("=" (assign | ("{" assign ("," assign)* "}")))? ("," declarator ("=" (assign | ("{" assign ("," assign)* "}")))?)*)? ";"
-static Node *declaration() {
-  Type *basety = decl_basictype();
+static struct Node *declaration() {
+  struct Type *basety = decl_basictype();
 
-  Node head = {};
-  Node *cur = &head;
+  struct Node head = {};
+  struct Node *cur = &head;
 
   while (!consume(";")) {
-    Type *ty = declarator(basety);
+    struct Type *ty = declarator(basety);
     if (!ty) // 宣言として読み込み失敗
       return NULL;
-    LVar *lvar = new_lvar(ty->name, ty);
+    struct LVar *lvar = new_lvar(ty->name, ty);
 
     if (consume("=")) {
       if (lvar->ty->kind == TY_ARRAY) { // 配列に対する初期化
         if (consume("{")) { // 初期化子リスト
           long param_cnt = 0;
-          Node *lhs = new_node_lvar(lvar, ty->tok);
+          struct Node *lhs = new_node_lvar(lvar, ty->tok);
 
           while (!consume("}")) {
-            Node *rhs = assign();
+            struct Node *rhs = assign();
             decay_arr(rhs); // 右辺が配列ならポインタに降格
             if (param_cnt<lvar->ty->array_size) // 配列の要素数を超えた
               cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), rhs);
@@ -358,10 +358,10 @@ static Node *declaration() {
             ++param_cnt;
           }
         } else { // 文字列リテラル
-          Token *tok = consume_str();
+          struct Token *tok = consume_str();
           if (tok) {
             long param_cnt = 0;
-            Node *lhs = new_node_lvar(lvar, ty->tok);
+            struct Node *lhs = new_node_lvar(lvar, ty->tok);
 
             for(char *ptr = tok->str+1;param_cnt<tok->len-2 && param_cnt<lvar->ty->array_size;++ptr) {
               cur = cur->next = new_node(ND_ASSIGN, new_node(ND_DEREF, new_add(lhs, new_node_num(param_cnt)), NULL), new_node_num(*ptr));
@@ -376,8 +376,8 @@ static Node *declaration() {
           }
         }
       } else { // 配列以外
-        Node *lhs = new_node_lvar(lvar, ty->tok);
-        Node *rhs = assign();
+        struct Node *lhs = new_node_lvar(lvar, ty->tok);
+        struct Node *rhs = assign();
         decay_arr(rhs); // 右辺が配列ならポインタに降格
         cur = cur->next = new_node(ND_ASSIGN, lhs, rhs);
       }
@@ -386,25 +386,25 @@ static Node *declaration() {
     consume(",");
   }
 
-  Node *node = new_node(ND_BLOCK, NULL, NULL);
+  struct Node *node = new_node(ND_BLOCK, NULL, NULL);
   node->body = head.next;
   return node;
 }
 // gvar_declaration = decl_basictype (declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))? ("," declarator ("=" (num | string_literal | ("{" num ("," num)* "}")))?)*)? ";"
 static long gvar_declaration() {
-  Type *basety = decl_basictype();
+  struct Type *basety = decl_basictype();
 
   while (!consume(";")) {
-    Type *ty = declarator(basety);
+    struct Type *ty = declarator(basety);
     if (!ty) // 宣言として読み込み失敗
       return false;
-    GVar *gvar = new_gvar(ty->name, ty);
+    struct GVar *gvar = new_gvar(ty->name, ty);
 
     if (consume("=")) {
       if (gvar->ty->kind == TY_ARRAY) { // 配列に対する初期化
         if (consume("{")) { // 初期化子リスト
-          Node head = {};
-          Node *cur = &head;
+          struct Node head = {};
+          struct Node *cur = &head;
           long param_cnt = 0;
 
           while (!consume("}")) {
@@ -417,17 +417,17 @@ static long gvar_declaration() {
             cur = cur->next = new_node_num(0);
             ++param_cnt;
           }
-          Node *node = new_node(ND_BLOCK, NULL, NULL);
+          struct Node *node = new_node(ND_BLOCK, NULL, NULL);
           node->body = head.next;
           add_type(node);
           gvar->init = node;
         } else { // 文字列リテラル
-          Token *tok = consume_str();
+          struct Token *tok = consume_str();
           if (tok) {
-            Node head = {};
-            Node *cur = &head;
+            struct Node head = {};
+            struct Node *cur = &head;
 
-            Str *string = new_str(tok);
+            struct Str *string = new_str(tok);
             cur = cur->next = new_node_str(string, tok);
             long param_cnt = string->ty->array_size;
 
@@ -435,7 +435,7 @@ static long gvar_declaration() {
               cur = cur->next = new_node_num(0);
               ++param_cnt;
             }
-            Node *node = new_node(ND_BLOCK, NULL, NULL);
+            struct Node *node = new_node(ND_BLOCK, NULL, NULL);
             node->body = head.next;
             add_type(node);
             gvar->init = node;
@@ -444,10 +444,10 @@ static long gvar_declaration() {
           }
         }
       } else { // 配列以外
-        Token *tok = consume_str();
+        struct Token *tok = consume_str();
         if (tok) {
-          Str *string = new_str(tok);
-          Node *node  = new_node_str(string, tok);
+          struct Str *string = new_str(tok);
+          struct Node *node  = new_node_str(string, tok);
 
           decay_arr(node); // 右辺が配列ならポインタに降格
           add_type(node);
@@ -465,11 +465,11 @@ static long gvar_declaration() {
 }
 
 // 構造体にオフセット割り当て
-static void assign_struct_offsets(Struct *_struct) {
+static void assign_struct_offsets(struct Struct *_struct) {
   long offset = 0;
   long struct_align = 0;
 
-  for(MStruct *member = _struct->decl->member; member; member = member->next) {
+  for(struct MStruct *member = _struct->decl->member; member; member = member->next) {
     if (!member->ty->align)
       error_at(member->ty->tok->str, "alignment is not defigned");
     member->offset = offset = align_to(offset, member->ty->align);
@@ -489,14 +489,14 @@ static long struct_declaration() {
     return false;
   }
   char *name = get_ident();
-  Struct *_struct = new_struct(name);
+  struct Struct *_struct = new_struct(name);
   if(consume("{")) {
-    MStruct head = {};
-    MStruct *cur = &head;
+    struct MStruct head = {};
+    struct MStruct *cur = &head;
 
     while (!consume("}")) {
-      Type *basety = decl_basictype();
-      Type *ty = declarator(basety);
+      struct Type *basety = decl_basictype();
+      struct Type *ty = declarator(basety);
       expect(";");
       cur = cur->next = new_mstruct(ty->name, ty);
     }
@@ -528,7 +528,7 @@ static long enum_declaration() {
 
   while (!consume("}")) {
     char *name = get_ident();
-    Enum *_enum = new_enum(name);
+    struct Enum *_enum = new_enum(name);
     expect(",");
     _enum->node = new_node_num(enum_cnt++);
     _enum->next = enums;
@@ -539,7 +539,7 @@ static long enum_declaration() {
   return true;
 }
 
-static void create_param_lvars(Type *param) {
+static void create_param_lvars(struct Type *param) {
   if (param) {
     create_param_lvars(param->next);
     new_lvar(param->name, param);
@@ -547,13 +547,13 @@ static void create_param_lvars(Type *param) {
 }
 
 // program = (function_definition | prototype_declaration | gvar_declaration | struct_declaration | enum_declaration)*
-Program *parse() {
-  Program *prog = calloc(1, sizeof(Program));
-  Function func_head = {};
-  Function *func_cur = &func_head;
+struct Program *parse() {
+  struct Program *prog = calloc(1, sizeof(struct Program));
+  struct Function func_head = {};
+  struct Function *func_cur = &func_head;
 
   while (!at_eof()) {
-    Token *origin = token; // 解析失敗時はトークンを元に戻す
+    struct Token *origin = token; // 解析失敗時はトークンを元に戻す
     if (struct_declaration()) { // 構造体宣言
       continue;
     }
@@ -566,7 +566,7 @@ Program *parse() {
       continue;
     }
     token = origin;
-    Function *func = function_definition();
+    struct Function *func = function_definition();
     if (func) {
       func_cur = func_cur->next = func;
       functions = func_head.next;
@@ -584,13 +584,13 @@ Program *parse() {
 }
 
 // function_definition = decl_basictype function_declarator stmt
-static Function *function_definition() {
-  Type *ty = decl_basictype();
+static struct Function *function_definition() {
+  struct Type *ty = decl_basictype();
   ty = function_declarator(ty);
 
   locals = NULL; // NULLのときが終端とするため
 
-  Function *fn = calloc(1, sizeof(Function));
+  struct Function *fn = calloc(1, sizeof(struct Function));
   fn->name = ty->name;
   create_param_lvars(ty->params);
   fn->params = locals;
@@ -604,13 +604,13 @@ static Function *function_definition() {
 }
 
 // prototype_declaration = decl_basictype function_declarator ";"
-static Function *prototype_declaration() {
-  Type *ty = decl_basictype();
+static struct Function *prototype_declaration() {
+  struct Type *ty = decl_basictype();
   ty = function_declarator(ty);
 
   locals = NULL; // NULLのときが終端とするため
 
-  Function *fn = calloc(1, sizeof(Function));
+  struct Function *fn = calloc(1, sizeof(struct Function));
   fn->name = ty->name;
   create_param_lvars(ty->params);
   fn->params = locals;
@@ -627,13 +627,13 @@ static Function *prototype_declaration() {
 //      | "for" "(" (declaration | stmt) expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "return" expr ";"
-static Node *stmt() {
-  Node *node;
+static struct Node *stmt() {
+  struct Node *node;
 
   if (consume("{")) {
-    Node head;
+    struct Node head;
     head.next = NULL;
-    Node *cur = &head;
+    struct Node *cur = &head;
     while (!consume("}")) {
       if (equal_basictype())
         cur = cur->next = declaration();
@@ -694,35 +694,35 @@ static Node *stmt() {
 }
 
 // expr = assign
-static Node *expr() {
+static struct Node *expr() {
   return assign();
 }
 
 // assign = logor (("="|"+="|"-="|"*="|"/="|"%=") assign)?
-static Node *assign() {
-  Node *node = logor();
+static struct Node *assign() {
+  struct Node *node = logor();
   if (consume("=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs); // 右辺が配列ならポインタに降格
     node = new_node(ND_ASSIGN, node, rhs);
   } else if (consume("+=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs);
     node = new_add_asgn(node, rhs);
   } else if (consume("-=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs);
     node = new_sub_asgn(node, rhs);
   } else if (consume("*=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs);
     node = new_node(ND_MULASGN, node, rhs);
   } else if (consume("/=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs);
     node = new_node(ND_DIVASGN, node, rhs);
   } else if (consume("%=")) {
-    Node *rhs = assign();
+    struct Node *rhs = assign();
     decay_arr(rhs);
     node = new_node(ND_REMASGN, node, rhs);
   }
@@ -730,8 +730,8 @@ static Node *assign() {
 }
 
 // logor = logand ("||" logand)*
-static Node *logor() {
-  Node *node = logand();
+static struct Node *logor() {
+  struct Node *node = logand();
   
   for (;;) {
     if (consume("||"))
@@ -742,8 +742,8 @@ static Node *logor() {
 }
 
 // logand = equality ("&&" equality)*
-static Node *logand() {
-  Node *node = equality();
+static struct Node *logand() {
+  struct Node *node = equality();
   
   for (;;) {
     if (consume("&&"))
@@ -754,8 +754,8 @@ static Node *logand() {
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-static Node *equality() {
-  Node *node = relational();
+static struct Node *equality() {
+  struct Node *node = relational();
 
   for (;;) {
     if (consume("=="))
@@ -768,8 +768,8 @@ static Node *equality() {
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-static Node *relational() {
-  Node *node = add();
+static struct Node *relational() {
+  struct Node *node = add();
 
   for (;;) {
     if (consume("<"))
@@ -788,7 +788,7 @@ static Node *relational() {
 // ポインタ演算の場合、pをポインタ、nを整数とすると
 // p + nはpにnをそのまま加算するのではなく、
 // sizeof(*p)*nをpの値に加算する。
-static Node *new_add(Node *lhs, Node *rhs) {
+static struct Node *new_add(struct Node *lhs, struct Node *rhs) {
   add_type(lhs);
   add_type(rhs);
 
@@ -797,7 +797,7 @@ static Node *new_add(Node *lhs, Node *rhs) {
     // lhsの型がadd計算後の型になる
     // char + int を int + char にひっくり返す
     if (lhs->ty->kind == TY_CHAR && rhs->ty->kind == TY_INT) {
-      Node *tmp = lhs;
+      struct Node *tmp = lhs;
       lhs = rhs;
       rhs = tmp;
     }
@@ -814,7 +814,7 @@ static Node *new_add(Node *lhs, Node *rhs) {
 
   // num + ptr を ptr + num にひっくり返す.
   if (!lhs->ty->base && rhs->ty->base) {
-    Node *tmp = lhs;
+    struct Node *tmp = lhs;
     lhs = rhs;
     rhs = tmp;
   }
@@ -825,7 +825,7 @@ static Node *new_add(Node *lhs, Node *rhs) {
 }
 
 // -演算子にもポインタと整数に対しての演算がある
-static Node *new_sub(Node *lhs, Node *rhs) {
+static struct Node *new_sub(struct Node *lhs, struct Node *rhs) {
   add_type(lhs);
   add_type(rhs);
 
@@ -845,7 +845,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   if (lhs->ty->base && is_integer(rhs->ty)) {
     rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
     add_type(rhs);
-    Node *node = new_node(ND_SUB, lhs, rhs);
+    struct Node *node = new_node(ND_SUB, lhs, rhs);
     node->ty = lhs->ty;
     return node;
   }
@@ -853,7 +853,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   // ptr - ptr
   // 2つのポインタ間の要素数を返す
   if (lhs->ty->base && rhs->ty->base) {
-    Node *node = new_node(ND_SUB, lhs, rhs);
+    struct Node *node = new_node(ND_SUB, lhs, rhs);
     node->ty = new_type(TY_INT);
     return new_node(ND_DIV, node, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
   }
@@ -862,7 +862,7 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   return NULL;
 }
 
-static Node *new_add_asgn(Node *lhs, Node *rhs) {
+static struct Node *new_add_asgn(struct Node *lhs, struct Node *rhs) {
   // if (!is_value(lhs))
   //   error_at(token->str, "非左辺値への代入");
   add_type(lhs);
@@ -901,7 +901,7 @@ static Node *new_add_asgn(Node *lhs, Node *rhs) {
   return new_node(ND_ADDASGN, lhs, rhs);
 }
 
-static Node *new_sub_asgn(Node *lhs, Node *rhs) {
+static struct Node *new_sub_asgn(struct Node *lhs, struct Node *rhs) {
   add_type(lhs);
   add_type(rhs);
 
@@ -922,7 +922,7 @@ static Node *new_sub_asgn(Node *lhs, Node *rhs) {
   if (lhs->ty->base && is_integer(rhs->ty)) {
     rhs = new_node(ND_MUL, rhs, new_node_num(lhs->ty->base->size)); // シフト演算子を定義したら変更する
     add_type(rhs);
-    Node *node = new_node(ND_SUBASGN, lhs, rhs);
+    struct Node *node = new_node(ND_SUBASGN, lhs, rhs);
     node->ty = lhs->ty;
     return node;
   }
@@ -940,8 +940,8 @@ static Node *new_sub_asgn(Node *lhs, Node *rhs) {
 }
 
 // add = mul ("+" mul | "-" mul)*
-static Node *add() {
-  Node *node = mul();
+static struct Node *add() {
+  struct Node *node = mul();
 
   for (;;) {
     if (consume("+"))
@@ -956,8 +956,8 @@ static Node *add() {
 }
 
 // mul = unary ("*" unary | "/" unary | "%" unary)*
-static Node *mul() {
-  Node *node = unary();
+static struct Node *mul() {
+  struct Node *node = unary();
 
   for (;;) {
     if (consume("*"))
@@ -976,7 +976,7 @@ static Node *mul() {
 //       | "*" unary
 //       | "&" postfix
 //       | "!" unary
-static Node *unary() {
+static struct Node *unary() {
   if (consume("++")) // 前置インクリメント
     return new_add_asgn(unary(), new_node_num(1));
   if (consume("--")) // 前置デクリメント
@@ -986,7 +986,7 @@ static Node *unary() {
   if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), postfix());
   if (consume("*")) {
-    Node *node = unary();
+    struct Node *node = unary();
     decay_arr(node); // 配列ならポインタに降格
     return new_node(ND_DEREF, node, NULL);
   }
@@ -998,8 +998,8 @@ static Node *unary() {
 }
 
 // postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
-static Node *postfix() {
-  Node *node = primary();
+static struct Node *postfix() {
+  struct Node *node = primary();
 
   for (;;) {
     if (consume("[")) {
@@ -1008,7 +1008,7 @@ static Node *postfix() {
     }
     else if (consume(".")) {
       add_type(node);
-      MStruct *member = find_member(node->ty, get_ident());
+      struct MStruct *member = find_member(node->ty, get_ident());
       node = new_node(ND_DEREF, new_node(ND_ADD, new_node(ND_ADDR, node, NULL), new_node_num(member->offset)), NULL);
       node->ty = member->ty;
     }
@@ -1017,7 +1017,7 @@ static Node *postfix() {
       decay_arr(node);
       if (node->ty->kind != TY_PTR)
         error_at(token->str, "'->' 演算子は構造体のポインタ型のみに使用できます");
-      MStruct *member = find_member(node->ty->base, get_ident());
+      struct MStruct *member = find_member(node->ty->base, get_ident());
       node = new_node(ND_DEREF, new_node(ND_ADD, node, new_node_num(member->offset)), NULL);
       node->ty = member->ty;
     }
@@ -1032,9 +1032,9 @@ static Node *postfix() {
 }
 
 // funcall = "(" (assign ("," assign)*)? ")"
-static Node *funcall(Token *tok) {
-  Node head = {};
-  Node *cur = &head;
+static struct Node *funcall(struct Token *tok) {
+  struct Node head = {};
+  struct Node *cur = &head;
 
   while (!consume(")")) {
     cur = cur->next = assign();
@@ -1042,69 +1042,69 @@ static Node *funcall(Token *tok) {
     consume(",");
   }
 
-  Node *node = new_node(ND_FUNCALL, NULL, NULL);
+  struct Node *node = new_node(ND_FUNCALL, NULL, NULL);
   node->funcname = strndup(tok->str, tok->len);
   node->args = head.next;
   return node;  
 }
 
 // primary = num | string_literal | ident funcall? | "(" expr ")" | "sizeof" unary
-static Node *primary() {
+static struct Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
-    Node *node = expr();
+    struct Node *node = expr();
     expect(")");
     return node;
   }
 
   if (consume_keyword("sizeof")) {
-    Token *origin = token; // 解析失敗時はトークンを元に戻す
+    struct Token *origin = token; // 解析失敗時はトークンを元に戻す
     if (consume("(") && equal_basictype()) {
-      Type *basety = decl_basictype();
-      Type *ty = declarator_except_ident(basety);
+      struct Type *basety = decl_basictype();
+      struct Type *ty = declarator_except_ident(basety);
       expect(")");
       return new_node_num(ty->size);
     }
 
     token = origin;
-    Node *node = unary();
+    struct Node *node = unary();
     add_type(node);
     return new_node_num(node->ty->size);
   }
 
   if (consume_keyword("_Alignof")) {
     expect("(");
-    Type *basety = decl_basictype();
-    Type *ty = declarator_except_ident(basety);
+    struct Type *basety = decl_basictype();
+    struct Type *ty = declarator_except_ident(basety);
     expect(")");
     return new_node_num(ty->align);
   }
 
   if (consume_keyword("offsetof") || consume_keyword("__builtin_offsetof")) {
     expect("(");
-    Type *type = decl_basictype();
+    struct Type *type = decl_basictype();
     expect(",");
     char *member = get_ident();
     expect(")");
     return new_node_num(find_member(find_struct(type->tag_name), member)->offset);
   }
 
-  Token *tok = consume_ident();
+  struct Token *tok = consume_ident();
   if (tok) {
     // 関数呼び出し
     if (consume("(")) {
       return funcall(tok);
     }
 
-    Enum *_enum = find_enum(tok);
+    struct Enum *_enum = find_enum(tok);
     if (_enum)
       return _enum->node;
 
-    LVar *lvar = find_lvar(tok);
+    struct LVar *lvar = find_lvar(tok);
     if (lvar) 
       return new_node_lvar(lvar, tok);
     // 見つからなければグローバル変数を探す
-    GVar *gvar = find_gvar(tok);
+    struct GVar *gvar = find_gvar(tok);
     if (!gvar) 
       error_at(token->str, "未定義の変数");
 
@@ -1113,7 +1113,7 @@ static Node *primary() {
 
   tok = consume_str();
   if (tok) {
-    Str *string = new_str(tok);
+    struct Str *string = new_str(tok);
     return new_node_str(string, tok);
   }
 

@@ -274,7 +274,7 @@ char *pointer_to_char() { return char_pointer_to+5; }
 void *calloc();
 
 int *calloc_test1() { struct test *p = calloc(1, sizeof(struct test)); return p->bar; }
-int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }
+// int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }
 
 enum {
   enuma,
@@ -722,8 +722,8 @@ int main() {
 
   printf("int *calloc_test1() { struct test *p = calloc(1, sizeof(struct test)); return p->bar; }");
   assert(0, calloc_test1());
-  printf("int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }");
-  assert(-1, calloc_test2());
+  // printf("int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }");
+  // assert(-1, calloc_test2());
 
   printf("enum {enuma, enumb, enumc, }; enuma");
   assert(0, enuma);

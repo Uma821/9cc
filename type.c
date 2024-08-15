@@ -1,7 +1,7 @@
 #include "9cc.h"
 
-Type *new_type(long /*TypeKind*/ kind) {
-  Type *ty = calloc(1, sizeof(Type));
+struct Type *new_type(long /*TypeKind*/ kind) {
+  struct Type *ty = calloc(1, sizeof(struct Type));
   ty->kind = kind;
   if (kind == TY_CHAR || kind == TY_VOID)
     ty->align = ty->size = 1; // sizeof(char) == 1
@@ -10,31 +10,31 @@ Type *new_type(long /*TypeKind*/ kind) {
   return ty;
 }
 
-Type *func_type(Type *return_ty) {
-  Type *ty = calloc(1, sizeof(Type));
+struct Type *func_type(struct Type *return_ty) {
+  struct Type *ty = calloc(1, sizeof(struct Type));
   ty->kind = TY_FUNC;
   ty->return_ty = return_ty;
   return ty;
 }
 
-long is_integer(Type *ty) {
+long is_integer(struct Type *ty) {
   return ty->kind == TY_INT || ty->kind == TY_CHAR || ty->kind == TY_VOID;
 }
 
-// bool is_lvalue(Node *node) {
+// bool is_lvalue(struct Node *node) {
 //   return node->kind == ND_LVAR || node->kind == ND_GVAR;
 // }
 
-Type *pointer_to(Type *base) {
-  Type *ty = calloc(1, sizeof(Type));
+struct Type *pointer_to(struct Type *base) {
+  struct Type *ty = calloc(1, sizeof(struct Type));
   ty->kind = TY_PTR;
   ty->align = ty->size = 8;
   ty->base = base;
   return ty;
 }
 
-Type *array_of(Type *elem, size_t array_size) {
-  Type *ty = calloc(1, sizeof(Type));
+struct Type *array_of(struct Type *elem, size_t array_size) {
+  struct Type *ty = calloc(1, sizeof(struct Type));
   ty->kind = TY_ARRAY;
   ty->size = array_size * elem->size; // sizeof
   ty->align = elem->align;
@@ -43,33 +43,33 @@ Type *array_of(Type *elem, size_t array_size) {
   return ty;
 }
 
-long get_type_size(Type *ty) {
+long get_type_size(struct Type *ty) {
   return ty->size;
 }
-Str *get_strings() {
+struct Str *get_strings() {
   return strings;
 }
 
-static Function* find_function(char *funcname) {
-  for (Function *fn = functions; fn; fn = fn->next) {
+static struct Function* find_function(char *funcname) {
+  for (struct Function *fn = functions; fn; fn = fn->next) {
     if (!strcmp(funcname, fn->name))
       return fn;
   }
-  for (Function *fn = prototypes; fn; fn = fn->next) {
+  for (struct Function *fn = prototypes; fn; fn = fn->next) {
     if (!strcmp(funcname, fn->name))
       return fn;
   }
   return NULL;
 }
 
-static Type* detect_func_rettype(char *funcname) {
-  Function *fn = find_function(funcname);
+static struct Type* detect_func_rettype(char *funcname) {
+  struct Function *fn = find_function(funcname);
   if (fn) return fn->ret_ty;
   return new_type(TY_INT);
 }
 
 // ポインタの演算と整数型の演算では処理が変わるため
-void add_type(Node *node) {
+void add_type(struct Node *node) {
   if (!node || node->ty)
     return;
 
@@ -81,9 +81,9 @@ void add_type(Node *node) {
   add_type(node->init);
   add_type(node->inc);
 
-  for (Node *n = node->body; n; n = n->next)
+  for (struct Node *n = node->body; n; n = n->next)
     add_type(n);
-  for (Node *n = node->args; n; n = n->next)
+  for (struct Node *n = node->args; n; n = n->next)
     add_type(n);
 
   switch (node->kind) {

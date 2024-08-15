@@ -37,7 +37,7 @@ signed main(signed argc, char **argv) {
   user_input = read_file(argv[1]);
   filename = argv[1];
   tokenize();
-  Program *prog = parse();
+  struct Program *prog = parse();
 
   codegen(prog);
   return 0;
