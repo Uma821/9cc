@@ -55,7 +55,9 @@ static struct Type *find_struct(char *ident) {
 
 // 構造体のメンバ群から指定したメンバを探す
 static struct MStruct *find_member(struct Type *struct_ty, char *ident) {
-  for (struct MStruct *mem = struct_ty->member; mem; mem = mem->next) {
+  if (struct_ty->kind != TY_STRUCT)
+    error_at(token->str, "演算子を適用できません");
+  for (struct MStruct *mem = find_struct(struct_ty->tag_name)->member; mem; mem = mem->next) { // 最新の型情報に対して検索
     if (!strncmp(ident, mem->name, mem->len))
       return mem;
   }

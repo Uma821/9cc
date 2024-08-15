@@ -240,10 +240,18 @@ struct C {
   char mem3;
   struct B *mem4;
 };
+struct D {
+  int mem1;
+  struct C mem2;
+  struct C *mem3;
+  char mem4;
+};
 
 struct test {int foo; int bar;};
 struct test test_struct;
 struct test *ret_p() { return &test_struct; }
+
+void *calloc();
 
 int struct_test1() { struct A a; a.mem1 = 1; a.mem2 = 2; a.mem3 = 3; a.mem4 = 4; return a.mem1; }
 int struct_test2() { struct B b; b.mem1 = 1; b.mem2 = 2; b.mem3 = 3; b.mem4 = 4; return b.mem1; }
@@ -256,6 +264,10 @@ int struct_test7() {
     ret_p()->bar = 2;
     return test_struct.bar;
 }
+int struct_pass(struct D*d) {
+  return d->mem3->mem4->mem1;
+}
+int struct_test8() { struct D *d = calloc(1, sizeof(struct D)), *pd; d->mem3=&d->mem2;d->mem2.mem4 = &d->mem2.mem2; struct_pass(d); return d->mem3->mem4->mem4; }
 
 char integer_promotion1() {
     char a = 30;
@@ -270,8 +282,6 @@ char integer_promotion2() {
 char char_pointer_to[20] = "akasatana";
 int *pointer_to_int() { return &gvar_test_a; }
 char *pointer_to_char() { return char_pointer_to+5; }
-
-void *calloc();
 
 int *calloc_test1() { struct test *p = calloc(1, sizeof(struct test)); return p->bar; }
 // int *calloc_test2() { struct test *p = calloc(1, 18446744073709551615); if (p) return p->foo; return -1; }
