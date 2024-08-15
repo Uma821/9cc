@@ -255,6 +255,12 @@ void tokenize() {
       continue;
     }
 
+    // staticを無視
+    if (strncmp(p, "static", strlen("static")) == 0 && !is_alnum(p[strlen("static")])) {
+      p += strlen("static");
+      continue;
+    }
+
     // 識別子
     if (is_ident1(*p)) {
       char *start = p;
