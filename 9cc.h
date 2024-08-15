@@ -11,9 +11,9 @@ typedef struct Node Node;
 // errno.h プロトタイプ宣言
 long *__errno_location(void);
 // ctype.h プロトタイプ宣言
-long ispunct(long c);
-long isspace(long c);
-long isdigit(long c);
+int ispunct(int c);
+int isspace(int c);
+int isdigit(int c);
 
 //
 // tokenize.c
