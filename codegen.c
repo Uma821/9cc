@@ -11,35 +11,31 @@ static long count(void) {
 }
 
 static void gen_variable(Node *node) {
-  switch (node->kind) {
-  case ND_LVAR:
+  if (node->kind == ND_LVAR) {
     printf("  mov rax, rbp\n");
     printf("  sub rax, %ld\n", node->lvar->offset);
     printf("  push rax\n");
     return;
-  case ND_GVAR:
+  } else if (node->kind == ND_GVAR) {
     printf("  push offset %s\n", node->gvar->name);
     return;
-  case ND_DEREF:
+  } else if (node->kind == ND_DEREF) {
     gen(node->lhs);
     return;
-
-  default:
+  } else {
     error("代入の左辺値が変数ではありません");
   }
   
 }
 
 static void gen(Node *node) {
-  switch (node->kind) {
-  case ND_NUM:
+  if (node->kind == ND_NUM) {
     printf("  push %d\n", node->val);
     return;
-  case ND_STR:
+  } else if (node->kind == ND_STR) {
     printf("  push offset .LC%ld\n", node->string->num);
     return;
-  case ND_LVAR:
-  case ND_GVAR:
+  } else if (node->kind == ND_LVAR || node->kind == ND_GVAR) {
     gen_variable(node);
     if(!node->ty->decayed) { // 配列からポインタへの降格？暗黙型変換が生じたか？
     // 配列は先頭要素へのアドレスを返せばよい、以下3行はその中身を取り出すため必要ない
@@ -53,10 +49,10 @@ static void gen(Node *node) {
       }
     }
     return;
-  case ND_ADDR:
+  } else if (node->kind == ND_ADDR) {
     gen_variable(node->lhs);
     return;
-  case ND_DEREF:
+  } else if (node->kind == ND_DEREF) {
     gen(node->lhs);
     printf("  pop rax\n");
     if(node->ty->size == 1) {
@@ -67,7 +63,7 @@ static void gen(Node *node) {
       printf("  push rax\n");
     }
     return;
-  case ND_LOGOR: {
+  } else if (node->kind == ND_LOGOR) {
     long c = count();
     gen(node->lhs);
     printf("  pop rax\n");
@@ -84,8 +80,7 @@ static void gen(Node *node) {
     printf(".L.logor.end.%ld:\n", c);
     printf("  push rax\n");
     return;
-  }
-  case ND_LOGAND: {
+  } else if (node->kind == ND_LOGAND) {
     long c = count();
     gen(node->lhs);
     printf("  pop rax\n");
@@ -104,7 +99,7 @@ static void gen(Node *node) {
     return;
   }
 
-  case ND_ASSIGN:
+  else if (node->kind == ND_ASSIGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -120,7 +115,7 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_ADDASGN:
+  } else if (node->kind == ND_ADDASGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -145,7 +140,7 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_SUBASGN:
+  } else if (node->kind == ND_SUBASGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -171,7 +166,7 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_MULASGN:
+  } else if (node->kind == ND_MULASGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -196,7 +191,7 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_DIVASGN:
+  } else if (node->kind == ND_DIVASGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -223,7 +218,7 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_REMASGN:
+  } else if (node->kind == ND_REMASGN) {
     gen_variable(node->lhs);
     gen(node->rhs);
 
@@ -250,20 +245,21 @@ static void gen(Node *node) {
       printf("  push rdi\n");
     }
     return;
-  case ND_BLOCK:
+  } else if (node->kind == ND_BLOCK) {
     for (Node *n = node->body; n; n = n->next) {
       gen(n);
       printf("  pop rax\n");
     }
     printf("  push rax\n");
     return;
-  case ND_RETURN:
+  } else if (node->kind == ND_RETURN) {
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  jmp .L.return.%s\n", current_fn->name);
     return;
+  }
 
-  case ND_IF: {
+  else if (node->kind == ND_IF) {
     long c = count();
     gen(node->cond);
     printf("  pop rax\n");
@@ -280,8 +276,7 @@ static void gen(Node *node) {
     printf(".L.end.%ld:\n", c);
     printf("  push rax\n");
     return;
-  }
-  case ND_LOOP: {
+  } else if (node->kind == ND_LOOP) {
     long c = count();
     if (node->init) {
       gen(node->init);
@@ -304,8 +299,7 @@ static void gen(Node *node) {
     printf(".L.end.%ld:\n", c);
     printf("  push rax\n");
     return;
-  }
-  case ND_FUNCALL: {
+  } else if (node->kind == ND_FUNCALL) {
     long nargs = 0;
     for (Node *arg = node->args; arg; arg = arg->next) {
       gen(arg);
@@ -319,9 +313,6 @@ static void gen(Node *node) {
     printf("  push rax\n");
     return;
   }
-  default:
-    break;
-  }
 
   gen(node->lhs);
   gen(node->rhs);
@@ -329,47 +320,35 @@ static void gen(Node *node) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
-  switch (node->kind) {
-  case ND_ADD:
+  if (node->kind == ND_ADD)
     printf("  add rax, rdi\n");
-    break;
-  case ND_SUB:
+  else if (node->kind == ND_SUB)
     printf("  sub rax, rdi\n");
-    break;
-  case ND_MUL:
+  else if (node->kind == ND_MUL)
     printf("  imul rax, rdi\n");
-    break;
-  case ND_DIV:
+  else if (node->kind == ND_DIV) {
     printf("  cqo\n"); // RAXに入っている64ビットの値を128ビットに伸ばしてRDXとRAXにセット
     printf("  idiv rdi\n"); // 被除数は[RDX,RAX] (128)ビット整数とみなす
-    break;
-  case ND_REM:
+  } else if (node->kind == ND_REM) {
     printf("  cqo\n");
     printf("  idiv rdi\n");
     printf("  mov rax, rdx\n"); // 剰余はrdxレジスタに格納される
-    break;
-  case ND_EQ:
+  } else if (node->kind == ND_EQ) {
     printf("  cmp rax, rdi\n");
     printf("  sete al\n");
     printf("  movzb rax, al\n");
-    break;
-  case ND_NE:
+  } else if (node->kind == ND_NE) {
     printf("  cmp rax, rdi\n");
     printf("  setne al\n");
     printf("  movzb rax, al\n");
-    break;
-  case ND_LT:
+  } else if (node->kind == ND_LT) {
     printf("  cmp rax, rdi\n");
     printf("  setl al\n");
     printf("  movzb rax, al\n");
-    break;
-  case ND_LE:
+  } else if (node->kind == ND_LE) {
     printf("  cmp rax, rdi\n");
     printf("  setle al\n");
     printf("  movzb rax, al\n");
-    break;
-  default:
-    break;
   }
 
   printf("  push rax\n");
