@@ -7,6 +7,7 @@ Struct *struct_defs;
 Struct *struct_decls;
 Function *functions;
 Function *prototypes;
+Enum *enums;
 
 static size_t strnlen(const char *s, size_t n) {
 	const char *p = memchr(s, 0, n);
@@ -61,6 +62,13 @@ static MStruct *find_member(Type *struct_ty, char *ident) {
   error_at(token->str, "メンバが見つかりません");
   return NULL;
 }
+// enumによって定義された識別子について値を返す
+static Enum *find_enum(Token *tok) {
+  for (Enum *_enum = enums; _enum; _enum = _enum->next)
+    if (!memcmp(tok->str, _enum->name, tok->len))
+      return _enum;
+  return NULL;
+}
 
 // ローカル変数を名前で検索する。見つからなかった場合はNULLを返す。
 static LVar *find_lvar(Token *tok) {
@@ -77,7 +85,7 @@ static GVar *find_gvar(Token *tok) {
   return NULL;
 }
 
-static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+static Node *new_node(long /*NodeKind*/ kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
   node->lhs = lhs;
@@ -181,6 +189,11 @@ static Struct *new_struct(char *name) {
   _struct->decl->tag_name = name;
   _struct->decl->tag_len = strlen(name);
   return _struct;
+}
+static Enum *new_enum(char *name) {
+  Enum *_enum = calloc(1, sizeof(Enum));
+  _enum->name = name;
+  return _enum;
 }
 
 static Str *new_str(Token *tok) {
@@ -503,6 +516,29 @@ static long struct_declaration() {
   }
 }
 
+// enum_declaration = "enum" "{" (ident ",")* "}" ";"
+static long enum_declaration() {
+  if (!consume_keyword("enum")) {
+    return false;
+  }
+  if(!consume("{")) {
+    return false;
+  }
+  long enum_cnt = 0;
+
+  while (!consume("}")) {
+    char *name = get_ident();
+    Enum *_enum = new_enum(name);
+    expect(",");
+    _enum->node = new_node_num(enum_cnt++);
+    _enum->next = enums;
+    enums = _enum;
+  }
+  expect(";");
+
+  return true;
+}
+
 static void create_param_lvars(Type *param) {
   if (param) {
     create_param_lvars(param->next);
@@ -510,7 +546,7 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-// program = (function_definition | prototype_declaration | gvar_declaration | struct_declaration | struct_declaration)*
+// program = (function_definition | prototype_declaration | gvar_declaration | struct_declaration | enum_declaration)*
 Program *parse() {
   Program *prog = calloc(1, sizeof(Program));
   Function func_head = {};
@@ -519,6 +555,10 @@ Program *parse() {
   while (!at_eof()) {
     Token *origin = token; // 解析失敗時はトークンを元に戻す
     if (struct_declaration()) { // 構造体宣言
+      continue;
+    }
+    token = origin;
+    if (enum_declaration()) { // 列挙体宣言
       continue;
     }
     token = origin;
@@ -1055,6 +1095,10 @@ static Node *primary() {
     if (consume("(")) {
       return funcall(tok);
     }
+
+    Enum *_enum = find_enum(tok);
+    if (_enum)
+      return _enum->node;
 
     LVar *lvar = find_lvar(tok);
     if (lvar) 

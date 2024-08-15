@@ -132,7 +132,7 @@ Token *consume_str() {
 }
 
 // 新しいトークンを作成してcurに繋げる
-static Token *new_token(TokenKind kind, Token *cur, char *str, long len) {
+static Token *new_token(long /*TokenKind*/ kind, Token *cur, char *str, long len) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->str = str;
@@ -188,7 +188,7 @@ static long is_alnum(char c) {
 // キーワードかどうかを調べる。
 static long is_keyword(const char * const p) {
   static char const * const kws[] = {
-    "if", "else", "for", "while", "return", "int", "char", "long", "void", "sizeof", "struct", "_Alignof", "offsetof", "__builtin_offsetof"};
+    "if", "else", "for", "while", "return", "int", "char", "long", "void", "sizeof", "struct", "enum", "_Alignof", "offsetof", "__builtin_offsetof"};
   for (long i = 0; i < sizeof(kws) / sizeof(*kws); i++)
     if (strncmp(p, kws[i], strlen(kws[i])) == 0 && !is_alnum(p[strlen(kws[i])]))
       return strlen(kws[i]);

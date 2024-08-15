@@ -20,19 +20,19 @@ int isdigit(int c);
 //
 
 // トークンの種類
-typedef enum {
+/*typedef*/ enum {
   TK_RESERVED, // 記号
   TK_IDENT,    // 識別子
   TK_NUM,      // 整数トークン
   TK_STR,      // 文字列リテラル
   TK_KEYWORD,  // キーワード
   TK_EOF,      // 入力の終わりを表すトークン
-} TokenKind;
+} /*TokenKind*/;
 
 // トークン型
 typedef struct Token Token;
 struct Token {
-  TokenKind kind; // トークンの型
+  long /*TokenKind*/ kind; // トークンの型
   Token *next;    // 次の入力トークン
   long val;        // kindがTK_NUMの場合、その数値
   char *str;      // トークン文字列
@@ -122,7 +122,7 @@ struct MStruct {
 extern Struct *Structs;
 
 // 抽象構文木のノードの種類
-typedef enum {
+/*typedef*/ enum {
   ND_ADD,     // +
   ND_SUB,     // -
   ND_MUL,     // *
@@ -151,13 +151,13 @@ typedef enum {
   ND_GVAR,    // グローバル変数
   ND_NUM,     // 整数
   ND_STR,     // 文字列リテラル
-} NodeKind;
+} /*NodeKind*/;
 
 typedef struct Node Node;
 
 // 抽象構文木のノードの型
 struct Node {
-  NodeKind kind;  // ノードの型
+  long /*NodeKind*/ kind;  // ノードの型
   Node *next;     // 次のノード
   Token *tok;     // このノードのトークン
   Type *ty;       // そのノードのタイプ,longやlongへのポインタなど
@@ -190,6 +190,14 @@ struct Function {
   long stack_size;
 };
 
+// Enum中に出てきた識別子を覚えておく型
+typedef struct Enum Enum;
+struct Enum {
+  Enum *next; // 次の変数かNULL
+  char *name; // 識別子の名前
+  Node *node; // 値定義
+};
+
 // codegen_helper.c
 long align_to(long n, long align);
 void assign_lvar_offsets(struct Function *funcs);
@@ -211,7 +219,7 @@ Program *parse();
 // type.c
 //
 
-typedef enum {
+/*typedef*/ enum {
   TY_INT,
   TY_CHAR,
   TY_VOID,
@@ -219,10 +227,10 @@ typedef enum {
   TY_ARRAY,
   TY_FUNC,
   TY_STRUCT,
-} TypeKind;
+} /*TypeKind*/;
 
 struct Type {
-  TypeKind kind;
+  long /*TypeKind*/ kind;
   long size;           // sizeof
   long align;          // alignof
  
@@ -242,7 +250,7 @@ struct Type {
   MStruct *member;  // メンバへのポインタ
 };
 
-Type *new_type(TypeKind kind);
+Type *new_type(long /*TypeKind*/ kind);
 Type *func_type(Type *return_ty);
 long is_integer(Type *ty);
 Type *pointer_to(Type *base);

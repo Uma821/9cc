@@ -1,6 +1,6 @@
 #include "9cc.h"
 
-Type *new_type(TypeKind kind) {
+Type *new_type(long /*TypeKind*/ kind) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = kind;
   if (kind == TY_CHAR || kind == TY_VOID)
